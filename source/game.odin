@@ -27,29 +27,42 @@ created.
 
 package game
 
-import "core:fmt"
-import "core:math/linalg"
+// import "core:fmt"
+// import "core:math/linalg"
 import rl "vendor:raylib"
 
-PIXEL_WINDOW_HEIGHT :: 180
+GRID_WIDTH :: 21
+GRID_HEIGHT :: 12
+CELL_SIZE :: 60
+PIXEL_WINDOW_HEIGHT :: CELL_SIZE * GRID_HEIGHT
+
+Vec2i :: [2]int
+
+
 
 Game_Memory :: struct {
 	player_pos: rl.Vector2,
-	player_texture: rl.Texture,
+	snake_head_texture: rl.Texture,
+	snake_tail_texture: rl.Texture,
+	snake_body_texture: rl.Texture,
 	some_number: int,
 	run: bool,
+	grid: [GRID_HEIGHT * GRID_WIDTH]int,
+	gridTest: [1]int,
+	startPos: Vec2i,
 }
 
 g_mem: ^Game_Memory
 
 game_camera :: proc() -> rl.Camera2D {
-	w := f32(rl.GetScreenWidth())
+	// w := f32(rl.GetScreenWidth())
 	h := f32(rl.GetScreenHeight())
 
 	return {
 		zoom = h/PIXEL_WINDOW_HEIGHT,
-		target = g_mem.player_pos,
-		offset = { w/2, h/2 },
+		// target = g_mem.player_pos,
+		// target = {0 ,0},
+		// offset = { w/2, h/2 },
 	}
 }
 
@@ -60,38 +73,106 @@ ui_camera :: proc() -> rl.Camera2D {
 }
 
 update :: proc() {
-	input: rl.Vector2
+	moved : bool
+	oldPos := g_mem.player_pos
 
 	if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
-		input.y -= 1
+		g_mem.player_pos.y -= 1
+		moved = true
 	}
 	if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) {
-		input.y += 1
+		g_mem.player_pos.y += 1
+		moved = true
 	}
 	if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) {
-		input.x -= 1
+		g_mem.player_pos.x -= 1
+		moved = true
 	}
 	if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
-		input.x += 1
+		g_mem.player_pos.x += 1
+		moved = true
 	}
-
-	input = linalg.normalize0(input)
-	g_mem.player_pos += input * rl.GetFrameTime() * 100
-	g_mem.some_number += 1
 
 	if rl.IsKeyPressed(.ESCAPE) {
 		g_mem.run = false
+	}
+
+	if moved {
+		g_mem.grid[i32(oldPos.y * GRID_WIDTH + oldPos.x)] = 4
 	}
 }
 
 draw :: proc() {
 	rl.BeginDrawing()
-	rl.ClearBackground(rl.BLUE)
+	rl.ClearBackground(rl.BLACK)
 
 	rl.BeginMode2D(game_camera())
-	rl.DrawTextureEx(g_mem.player_texture, g_mem.player_pos, 0, 1, rl.WHITE)
-	rl.DrawRectangleV({20, 20}, {10, 10}, rl.RED)
-	rl.DrawRectangleV({-30, -20}, {10, 10}, rl.GREEN)
+	
+	rl.DrawRectangle(0, 0, GRID_WIDTH * CELL_SIZE, GRID_HEIGHT * CELL_SIZE, rl.BLUE)
+	
+	for i in 0..<len(g_mem.grid) {
+		if g_mem.grid[i] == 0 do continue
+		
+		x := i32(i % GRID_WIDTH) * CELL_SIZE
+		y := i32(i / GRID_WIDTH) * CELL_SIZE
+
+		switch g_mem.grid[i] {
+		case 1: 
+			rl.DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, rl.RED)
+		
+		case 2: 
+			rl.DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, rl.GREEN)
+		
+		case 3: 
+			source := rl.Rectangle {
+				0, 0,
+				f32(g_mem.snake_tail_texture.width),
+				f32(g_mem.snake_tail_texture.height),
+			}
+
+			dest := rl.Rectangle {
+				f32(x) + CELL_SIZE / 2,
+				f32(y) + CELL_SIZE / 2,
+				CELL_SIZE,
+				CELL_SIZE,
+			}
+
+			rl.DrawTexturePro(g_mem.snake_tail_texture, source, dest, {CELL_SIZE, CELL_SIZE} * 0.5, 90, rl.WHITE)
+		
+		case 4: 
+			source := rl.Rectangle {
+				0, 0,
+				f32(g_mem.snake_body_texture.width),
+				f32(g_mem.snake_body_texture.height),
+			}
+
+			dest := rl.Rectangle {
+				f32(x) + CELL_SIZE / 2,
+				f32(y) + CELL_SIZE / 2,
+				CELL_SIZE,
+				CELL_SIZE,
+			}
+
+			rl.DrawTexturePro(g_mem.snake_body_texture, source, dest, {CELL_SIZE, CELL_SIZE} * 0.5, 90, rl.WHITE)
+		}
+		
+		source := rl.Rectangle {
+			0, 0,
+			f32(g_mem.snake_head_texture.width),
+			f32(g_mem.snake_head_texture.height),
+		}
+
+		dest := rl.Rectangle {
+			f32(g_mem.player_pos.x * CELL_SIZE) + CELL_SIZE / 2,
+			f32(g_mem.player_pos.y * CELL_SIZE) + CELL_SIZE / 2,
+			CELL_SIZE,
+			CELL_SIZE,
+		}
+		
+		rl.DrawTexturePro(g_mem.snake_head_texture, source, dest, {CELL_SIZE, CELL_SIZE} * 0.5, 90, rl.WHITE)
+	}
+
+
 	rl.EndMode2D()
 
 	rl.BeginMode2D(ui_camera())
@@ -99,7 +180,7 @@ draw :: proc() {
 	// NOTE: `fmt.ctprintf` uses the temp allocator. The temp allocator is
 	// cleared at the end of the frame by the main application, meaning inside
 	// `main_hot_reload.odin`, `main_release.odin` or `main_web_entry.odin`.
-	rl.DrawText(fmt.ctprintf("some_number: %v\nplayer_pos: %v", g_mem.some_number, g_mem.player_pos), 5, 5, 8, rl.WHITE)
+	// rl.DrawText(fmt.ctprintf("some_number: %v\nplayer_pos: %v", g_mem.some_number, g_mem.player_pos), 5, 5, 8, rl.WHITE)
 
 	rl.EndMode2D()
 
@@ -115,9 +196,9 @@ game_update :: proc() {
 @(export)
 game_init_window :: proc() {
 	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
-	rl.InitWindow(1280, 720, "Odin + Raylib + Hot Reload template!")
-	rl.SetWindowPosition(200, 200)
-	rl.SetTargetFPS(500)
+	rl.InitWindow(GRID_WIDTH * CELL_SIZE, GRID_HEIGHT * CELL_SIZE, "Snek!")
+	rl.SetWindowPosition(2100, 50)
+	rl.SetTargetFPS(10)
 	rl.SetExitKey(nil)
 }
 
@@ -131,8 +212,26 @@ game_init :: proc() {
 
 		// You can put textures, sounds and music in the `assets` folder. Those
 		// files will be part any release or web build.
-		player_texture = rl.LoadTexture("assets/round_cat.png"),
+		snake_head_texture = rl.LoadTexture("assets/head.png"),
+		snake_tail_texture = rl.LoadTexture("assets/tail.png"),
+		snake_body_texture = rl.LoadTexture("assets/body.png"),
+		player_pos = {4, 5},
+		grid = {
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
+			1, 3, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1,
+			1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		},
 	}
+
 
 	game_hot_reloaded(g_mem)
 }
