@@ -27,29 +27,39 @@ created.
 
 package game
 
-// import "core:fmt"
+import "core:fmt"
 // import "core:math/linalg"
 import rl "vendor:raylib"
+// import "core:os"
+import "core:strings"
 
 GRID_WIDTH :: 21
 GRID_HEIGHT :: 12
 CELL_SIZE :: 60
 PIXEL_WINDOW_HEIGHT :: CELL_SIZE * GRID_HEIGHT
+TICK_RATE :: 0.40
+
+Cell :: enum {
+    Empty,
+    Wall,
+    Tail,
+    Body,
+    Head,
+    Goal,
+}
 
 Vec2i :: [2]int
 
-
-
 Game_Memory :: struct {
-	player_pos: rl.Vector2,
+	player_pos: Vec2i,
+	tick_timer: f32,
+	next_dir: Vec2i,
 	snake_head_texture: rl.Texture,
 	snake_tail_texture: rl.Texture,
 	snake_body_texture: rl.Texture,
-	some_number: int,
 	run: bool,
-	grid: [GRID_HEIGHT * GRID_WIDTH]int,
-	gridTest: [1]int,
-	startPos: Vec2i,
+	grid: [dynamic]Cell,
+	level: i32,
 }
 
 g_mem: ^Game_Memory
@@ -73,32 +83,50 @@ ui_camera :: proc() -> rl.Camera2D {
 }
 
 update :: proc() {
-	moved : bool
-	oldPos := g_mem.player_pos
-
-	if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
-		g_mem.player_pos.y -= 1
-		moved = true
-	}
-	if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) {
-		g_mem.player_pos.y += 1
-		moved = true
-	}
-	if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) {
-		g_mem.player_pos.x -= 1
-		moved = true
-	}
-	if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
-		g_mem.player_pos.x += 1
-		moved = true
-	}
-
 	if rl.IsKeyPressed(.ESCAPE) {
 		g_mem.run = false
 	}
+	
+	if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
+		g_mem.next_dir = {0, -1}
+	} else if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) {
+		g_mem.next_dir = {0, 1}
+	} else if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) {
+		g_mem.next_dir = {-1, 0}
+	} else if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
+		g_mem.next_dir = {1, 0}
+	}
 
-	if moved {
-		g_mem.grid[i32(oldPos.y * GRID_WIDTH + oldPos.x)] = 4
+	if rl.IsKeyDown(.ENTER) {
+		restart()
+	}
+
+	
+	g_mem.tick_timer -= rl.GetFrameTime()
+	if g_mem.tick_timer <= 0 {
+		g_mem.tick_timer += TICK_RATE
+		
+		oldPos := g_mem.player_pos
+		nextPos := oldPos + g_mem.next_dir
+
+		if nextPos == oldPos do return
+		if nextPos.x < 0 || nextPos.x >= GRID_WIDTH || nextPos.y < 0 || nextPos.y >= GRID_HEIGHT do return
+
+		nextCell := g_mem.grid[i32(nextPos.y * GRID_WIDTH + nextPos.x)]
+		if nextCell == .Goal {
+			g_mem.level += 1
+			if g_mem.level > 3 do g_mem.level = 1
+			restart()
+			return
+		} else if nextCell != .Empty {
+			restart()
+			return
+		} 
+		
+		g_mem.player_pos = nextPos
+		
+		g_mem.grid[i32(oldPos.y * GRID_WIDTH + oldPos.x)] = .Body
+		g_mem.grid[i32(g_mem.player_pos.y * GRID_WIDTH + g_mem.player_pos.x)] = .Head
 	}
 }
 
@@ -111,19 +139,19 @@ draw :: proc() {
 	rl.DrawRectangle(0, 0, GRID_WIDTH * CELL_SIZE, GRID_HEIGHT * CELL_SIZE, rl.BLUE)
 	
 	for i in 0..<len(g_mem.grid) {
-		if g_mem.grid[i] == 0 do continue
+		if g_mem.grid[i] == .Empty do continue
 		
 		x := i32(i % GRID_WIDTH) * CELL_SIZE
 		y := i32(i / GRID_WIDTH) * CELL_SIZE
 
-		switch g_mem.grid[i] {
-		case 1: 
+		#partial switch g_mem.grid[i] {
+		case .Wall: 
 			rl.DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, rl.RED)
 		
-		case 2: 
+		case .Goal: 
 			rl.DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, rl.GREEN)
 		
-		case 3: 
+		case .Tail: 
 			source := rl.Rectangle {
 				0, 0,
 				f32(g_mem.snake_tail_texture.width),
@@ -139,7 +167,7 @@ draw :: proc() {
 
 			rl.DrawTexturePro(g_mem.snake_tail_texture, source, dest, {CELL_SIZE, CELL_SIZE} * 0.5, 90, rl.WHITE)
 		
-		case 4: 
+		case .Body: 
 			source := rl.Rectangle {
 				0, 0,
 				f32(g_mem.snake_body_texture.width),
@@ -180,11 +208,42 @@ draw :: proc() {
 	// NOTE: `fmt.ctprintf` uses the temp allocator. The temp allocator is
 	// cleared at the end of the frame by the main application, meaning inside
 	// `main_hot_reload.odin`, `main_release.odin` or `main_web_entry.odin`.
-	// rl.DrawText(fmt.ctprintf("some_number: %v\nplayer_pos: %v", g_mem.some_number, g_mem.player_pos), 5, 5, 8, rl.WHITE)
 
 	rl.EndMode2D()
 
 	rl.EndDrawing()
+}
+
+restart :: proc() {
+	g_mem.next_dir = {0, 0}
+	// g_mem.level = 1
+	clear(&g_mem.grid)
+
+	load_level()
+}
+
+load_level :: proc() {
+	levelName := fmt.tprintf("./assets/level_%d.txt", g_mem.level)
+	bytes, _ := _read_entire_file(levelName)
+    lines := strings.split(string(bytes), "\r\n")
+
+	for &line, y in lines {
+		for char, x in line {
+			cell := Cell.Empty
+			if char == '#' do cell = .Wall
+			else if char == 'T' do cell = .Tail
+			else if char == 'X' do cell = .Goal
+			else if char == 'H' {
+				cell = .Head
+				g_mem.player_pos = {x, y}
+			}
+
+			append(&g_mem.grid, cell)
+		}
+	}
+
+	delete(lines)
+	delete(bytes)
 }
 
 @(export)
@@ -198,7 +257,7 @@ game_init_window :: proc() {
 	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
 	rl.InitWindow(GRID_WIDTH * CELL_SIZE, GRID_HEIGHT * CELL_SIZE, "Snek!")
 	rl.SetWindowPosition(2100, 50)
-	rl.SetTargetFPS(10)
+	rl.SetTargetFPS(180)
 	rl.SetExitKey(nil)
 }
 
@@ -208,30 +267,17 @@ game_init :: proc() {
 
 	g_mem^ = Game_Memory {
 		run = true,
-		some_number = 100,
 
 		// You can put textures, sounds and music in the `assets` folder. Those
 		// files will be part any release or web build.
 		snake_head_texture = rl.LoadTexture("assets/head.png"),
 		snake_tail_texture = rl.LoadTexture("assets/tail.png"),
 		snake_body_texture = rl.LoadTexture("assets/body.png"),
-		player_pos = {4, 5},
-		grid = {
-			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-			1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
-			1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
-			1, 3, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1,
-			1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
-			1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
-			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		},
+		tick_timer = TICK_RATE,
+		level = 1,
 	}
 
+	restart()
 
 	game_hot_reloaded(g_mem)
 }
@@ -250,6 +296,7 @@ game_should_run :: proc() -> bool {
 
 @(export)
 game_shutdown :: proc() {
+	delete(g_mem.grid)
 	free(g_mem)
 }
 
