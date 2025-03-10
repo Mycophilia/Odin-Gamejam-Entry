@@ -27,236 +27,233 @@ created.
 
 package game
 
-import "core:fmt"
-// import "core:math/linalg"
 import rl "vendor:raylib"
-// import "core:os"
+import "core:fmt"
 import "core:strings"
+import "core:strconv"
+import "core:math"
+// import "core:math/linalg"
+// import "core:os"
 
-GRID_WIDTH :: 21
-GRID_HEIGHT :: 12
-CELL_SIZE :: 60
-PIXEL_WINDOW_HEIGHT :: CELL_SIZE * GRID_HEIGHT
-TICK_RATE :: 0.40
+PIXEL_WINDOW_SIZE :: 1050
+SLOW_TICK_RATE :: 0.40
+FAST_TICK_RATE :: 0.20
+LEVEL_COUNT :: 9
 
-Cell :: enum {
-    Empty,
-    Wall,
-    Tail,
-    Body,
-    Head,
-    Goal,
-}
+DIR_NONE  :: Vec2i{0, 0}
+DIR_UP    :: Vec2i{0, -1}
+DIR_DOWN  :: Vec2i{0, 1}
+DIR_LEFT  :: Vec2i{-1, 0}
+DIR_RIGHT :: Vec2i{1, 0}
 
 Vec2i :: [2]int
 
-Game_Memory :: struct {
-	player_pos: Vec2i,
+Cell :: enum {
+	Empty,
+    Wall,
+    Goal,
+	Tail,
+	Head,
+	Ice,
+	Sand,
+}
+
+Cells := [7]Cell {
+	.Empty,
+    .Wall,
+    .Goal,
+	.Tail,
+	.Head,
+	.Ice,
+	.Sand,
+}
+
+Button :: struct {
+	x: int,
+	y: int,
+	width: int,
+	height: int,
+}
+
+Level :: struct {
+	grid: [dynamic]Cell,
+	width: int,
+	height: int,
+	snake_tail_pos: Vec2i,
+	snake_head_pos: Vec2i,
+}
+
+Level_Status :: enum {
+	Paused,
+	Run,
+	GameOver,
+	Win,
+}
+
+Level_State :: struct {
+	level: i32,
+	status: Level_Status,
+	time: f32,
+	score: i32,
 	tick_timer: f32,
+	last_dir: Vec2i,
 	next_dir: Vec2i,
+	held_dir: Vec2i,
+	length: i32,
+	snake: [dynamic]Vec2i,
+	is_editing: bool,
+
+	cell_index: i32,
+}
+
+Game_Memory :: struct {
+	run: bool,
+	on_main_menu: bool,
+	
 	snake_head_texture: rl.Texture,
 	snake_tail_texture: rl.Texture,
 	snake_body_texture: rl.Texture,
-	run: bool,
-	grid: [dynamic]Cell,
-	level: i32,
+	snake_bend_texture: rl.Texture,
+	background_texture: rl.Texture,
+	font: rl.Font,
+
+	main_menu_buttons: [LEVEL_COUNT]Button,
+	levels: [LEVEL_COUNT]Level,
+	highScores: [LEVEL_COUNT]i32,
+	level_state: Level_State,
 }
 
 g_mem: ^Game_Memory
 
 game_camera :: proc() -> rl.Camera2D {
-	// w := f32(rl.GetScreenWidth())
-	h := f32(rl.GetScreenHeight())
-
+	scale := math.min(f32(rl.GetScreenWidth()) / PIXEL_WINDOW_SIZE, f32(rl.GetScreenHeight()) / PIXEL_WINDOW_SIZE)
 	return {
-		zoom = h/PIXEL_WINDOW_HEIGHT,
-		// target = g_mem.player_pos,
-		// target = {0 ,0},
-		// offset = { w/2, h/2 },
+		zoom = scale,
 	}
 }
 
-ui_camera :: proc() -> rl.Camera2D {
-	return {
-		zoom = f32(rl.GetScreenHeight())/PIXEL_WINDOW_HEIGHT,
-	}
-}
+save_level :: proc(level: ^Level, slot: i32) {
+	levelName := fmt.tprintf("./assets/level_%d.txt", slot)
 
-update :: proc() {
-	if rl.IsKeyPressed(.ESCAPE) {
-		g_mem.run = false
-	}
-	
-	if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
-		g_mem.next_dir = {0, -1}
-	} else if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) {
-		g_mem.next_dir = {0, 1}
-	} else if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) {
-		g_mem.next_dir = {-1, 0}
-	} else if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
-		g_mem.next_dir = {1, 0}
-	}
+	b := strings.builder_make()
 
-	if rl.IsKeyDown(.ENTER) {
-		restart()
-	}
-
-	
-	g_mem.tick_timer -= rl.GetFrameTime()
-	if g_mem.tick_timer <= 0 {
-		g_mem.tick_timer += TICK_RATE
-		
-		oldPos := g_mem.player_pos
-		nextPos := oldPos + g_mem.next_dir
-
-		if nextPos == oldPos do return
-		if nextPos.x < 0 || nextPos.x >= GRID_WIDTH || nextPos.y < 0 || nextPos.y >= GRID_HEIGHT do return
-
-		nextCell := g_mem.grid[i32(nextPos.y * GRID_WIDTH + nextPos.x)]
-		if nextCell == .Goal {
-			g_mem.level += 1
-			if g_mem.level > 3 do g_mem.level = 1
-			restart()
-			return
-		} else if nextCell != .Empty {
-			restart()
-			return
-		} 
-		
-		g_mem.player_pos = nextPos
-		
-		g_mem.grid[i32(oldPos.y * GRID_WIDTH + oldPos.x)] = .Body
-		g_mem.grid[i32(g_mem.player_pos.y * GRID_WIDTH + g_mem.player_pos.x)] = .Head
-	}
-}
-
-draw :: proc() {
-	rl.BeginDrawing()
-	rl.ClearBackground(rl.BLACK)
-
-	rl.BeginMode2D(game_camera())
-	
-	rl.DrawRectangle(0, 0, GRID_WIDTH * CELL_SIZE, GRID_HEIGHT * CELL_SIZE, rl.BLUE)
-	
-	for i in 0..<len(g_mem.grid) {
-		if g_mem.grid[i] == .Empty do continue
-		
-		x := i32(i % GRID_WIDTH) * CELL_SIZE
-		y := i32(i / GRID_WIDTH) * CELL_SIZE
-
-		#partial switch g_mem.grid[i] {
-		case .Wall: 
-			rl.DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, rl.RED)
-		
-		case .Goal: 
-			rl.DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, rl.GREEN)
-		
-		case .Tail: 
-			source := rl.Rectangle {
-				0, 0,
-				f32(g_mem.snake_tail_texture.width),
-				f32(g_mem.snake_tail_texture.height),
+	for y in 0..<level.height {
+		for x in 0..<level.width {
+			i := position_to_index({x, y}, level.width)
+			switch level.grid[i] {
+			case .Empty: 
+			strings.write_rune(&b, '.')
+			case .Wall: 
+			strings.write_rune(&b, '#')
+			case .Goal: 
+			strings.write_rune(&b, 'X')
+			case .Tail: 
+			strings.write_rune(&b, 'T')
+			case .Head: 
+			strings.write_rune(&b, 'H')
+			case .Ice: 
+			strings.write_rune(&b, 'I')
+			case .Sand: 
+			strings.write_rune(&b, 'S')
 			}
-
-			dest := rl.Rectangle {
-				f32(x) + CELL_SIZE / 2,
-				f32(y) + CELL_SIZE / 2,
-				CELL_SIZE,
-				CELL_SIZE,
-			}
-
-			rl.DrawTexturePro(g_mem.snake_tail_texture, source, dest, {CELL_SIZE, CELL_SIZE} * 0.5, 90, rl.WHITE)
-		
-		case .Body: 
-			source := rl.Rectangle {
-				0, 0,
-				f32(g_mem.snake_body_texture.width),
-				f32(g_mem.snake_body_texture.height),
-			}
-
-			dest := rl.Rectangle {
-				f32(x) + CELL_SIZE / 2,
-				f32(y) + CELL_SIZE / 2,
-				CELL_SIZE,
-				CELL_SIZE,
-			}
-
-			rl.DrawTexturePro(g_mem.snake_body_texture, source, dest, {CELL_SIZE, CELL_SIZE} * 0.5, 90, rl.WHITE)
-		}
-		
-		source := rl.Rectangle {
-			0, 0,
-			f32(g_mem.snake_head_texture.width),
-			f32(g_mem.snake_head_texture.height),
 		}
 
-		dest := rl.Rectangle {
-			f32(g_mem.player_pos.x * CELL_SIZE) + CELL_SIZE / 2,
-			f32(g_mem.player_pos.y * CELL_SIZE) + CELL_SIZE / 2,
-			CELL_SIZE,
-			CELL_SIZE,
-		}
-		
-		rl.DrawTexturePro(g_mem.snake_head_texture, source, dest, {CELL_SIZE, CELL_SIZE} * 0.5, 90, rl.WHITE)
+		strings.write_string(&b, "\r\n")
 	}
 
+	_write_entire_file(levelName, b.buf[:len(b.buf) - 2])
 
-	rl.EndMode2D()
-
-	rl.BeginMode2D(ui_camera())
-
-	// NOTE: `fmt.ctprintf` uses the temp allocator. The temp allocator is
-	// cleared at the end of the frame by the main application, meaning inside
-	// `main_hot_reload.odin`, `main_release.odin` or `main_web_entry.odin`.
-
-	rl.EndMode2D()
-
-	rl.EndDrawing()
+	delete(b.buf)
 }
 
-restart :: proc() {
-	g_mem.next_dir = {0, 0}
-	// g_mem.level = 1
-	clear(&g_mem.grid)
+load_levels :: proc() {
+	for i in 0..<LEVEL_COUNT {
+		levelName := fmt.tprintf("./assets/level_%d.txt", i)
+		bytes, _ := _read_entire_file(levelName)
+		defer delete(bytes)
+		lines := strings.split(string(bytes), "\r\n")
+		defer delete(lines)
 
-	load_level()
-}
+		tailPos : Vec2i
+		headPos : Vec2i
+		height := len(lines)
+		width := len(lines[0])
+		grid := make([dynamic]Cell, width * height)
 
-load_level :: proc() {
-	levelName := fmt.tprintf("./assets/level_%d.txt", g_mem.level)
-	bytes, _ := _read_entire_file(levelName)
-    lines := strings.split(string(bytes), "\r\n")
+		for &line, y in lines {
+			for char, x in line {
+				cell := Cell.Empty
+				if char == '#' do cell = .Wall
+				else if char == 'X' do cell = .Goal
+				else if char == 'I' do cell = .Ice
+				else if char == 'S' do cell = .Sand
+				else if char == 'T' {
+					cell = .Tail
+					tailPos = {x, y}
+				} else if char == 'H' {
+					cell = .Head
+					headPos = {x, y}
+				}
 
-	for &line, y in lines {
-		for char, x in line {
-			cell := Cell.Empty
-			if char == '#' do cell = .Wall
-			else if char == 'T' do cell = .Tail
-			else if char == 'X' do cell = .Goal
-			else if char == 'H' {
-				cell = .Head
-				g_mem.player_pos = {x, y}
+				grid[position_to_index({x, y}, width)] = cell
 			}
-
-			append(&g_mem.grid, cell)
 		}
+
+		level := Level{
+			height = len(lines),
+			width = len(lines[0]),
+			grid = grid,
+			snake_tail_pos = tailPos,
+			snake_head_pos = headPos,
+		}
+
+		g_mem.levels[i] = level
+	}
+}
+
+load_score :: proc() {
+	bytes, _ := _read_entire_file("./assets/score.txt")
+	defer delete(bytes)
+
+	lines := strings.split(string(bytes), "\r\n")
+	defer delete(lines)
+
+	for i in 0..<LEVEL_COUNT {
+		g_mem.highScores[i] = i32(strconv.atoi(lines[i]))
+	}
+}
+
+save_scores :: proc() {
+	b := strings.builder_make()
+
+	for score in g_mem.highScores {
+		strings.write_int(&b, int(score))
+		strings.write_string(&b, "\r\n")
 	}
 
-	delete(lines)
-	delete(bytes)
+	_write_entire_file("./assets/score.txt", b.buf[:len(b.buf) - 2])
+
+	delete(b.buf)
 }
 
 @(export)
 game_update :: proc() {
-	update()
-	draw()
+	if g_mem.on_main_menu {
+		main_menu_process_input()
+		main_menu_update()
+		main_menu_draw()
+	} else {
+		level_process_input()
+		level_update()
+		level_draw()
+	}
 }
 
 @(export)
 game_init_window :: proc() {
-	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
-	rl.InitWindow(GRID_WIDTH * CELL_SIZE, GRID_HEIGHT * CELL_SIZE, "Snek!")
-	rl.SetWindowPosition(2100, 50)
+	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT, .MSAA_4X_HINT, .WINDOW_HIGHDPI })
+	rl.InitWindow(PIXEL_WINDOW_SIZE, PIXEL_WINDOW_SIZE, "Snek!")
+	rl.SetWindowPosition(rl.GetMonitorWidth(rl.GetCurrentMonitor()) - PIXEL_WINDOW_SIZE - 100, 50)
 	rl.SetTargetFPS(180)
 	rl.SetExitKey(nil)
 }
@@ -268,16 +265,28 @@ game_init :: proc() {
 	g_mem^ = Game_Memory {
 		run = true,
 
-		// You can put textures, sounds and music in the `assets` folder. Those
-		// files will be part any release or web build.
 		snake_head_texture = rl.LoadTexture("assets/head.png"),
-		snake_tail_texture = rl.LoadTexture("assets/tail.png"),
-		snake_body_texture = rl.LoadTexture("assets/body.png"),
-		tick_timer = TICK_RATE,
-		level = 1,
+		snake_tail_texture = rl.LoadTexture("assets/butt1.png"),
+		snake_body_texture = rl.LoadTexture("assets/body1.png"),
+		snake_bend_texture = rl.LoadTexture("assets/turn1.png"),
+		background_texture = rl.LoadTexture("assets/background.png"),
+		font = rl.LoadFontEx("assets/SpaceMono-Regular.ttf", 200, nil, 0),
+		on_main_menu = true,
 	}
 
-	restart()
+	g_mem.level_state.snake = make([dynamic]Vec2i)
+
+	padding := 20
+	for &button, i in g_mem.main_menu_buttons {
+		pos := index_to_position(i, 3)
+		button.x = pos.x * PIXEL_WINDOW_SIZE / 3 + padding
+		button.y = (pos.y + 1) * PIXEL_WINDOW_SIZE / 4 + padding
+		button.width = PIXEL_WINDOW_SIZE / 3 - padding * 2
+		button.height = PIXEL_WINDOW_SIZE / 4 - padding * 2
+	}
+
+	load_levels()
+	load_score()
 
 	game_hot_reloaded(g_mem)
 }
@@ -296,7 +305,12 @@ game_should_run :: proc() -> bool {
 
 @(export)
 game_shutdown :: proc() {
-	delete(g_mem.grid)
+	for i in 0..<9 {
+		delete(g_mem.levels[i].grid)
+	}
+
+	delete(g_mem.level_state.snake)
+	
 	free(g_mem)
 }
 
