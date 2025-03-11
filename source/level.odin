@@ -4,6 +4,26 @@ import rl "vendor:raylib"
 import "core:math"
 import "core:fmt"
 
+Level_State :: struct {
+	level: i32,
+	status: Level_Status,
+	time: f32,
+	score: i32,
+	tick_timer: f32,
+	current_dir: Vec2i,
+	target_dir: Vec2i,
+    current_pos: Vec2i,
+    target_pos: Vec2i,
+	length: i32,
+	snake_body: [dynamic]Vec2i,
+	is_editing: bool,
+    speed_multiplier: f32,
+    frame_index: int,
+    head_frame_index: int,
+
+	cell_index: i32,
+}
+
 level_process_input :: proc() {
     state := &g_mem.level_state
 
@@ -26,119 +46,159 @@ level_process_input :: proc() {
         }
 
     } else {
-        state.held_dir = DIR_NONE
-        if (rl.IsKeyDown(.UP) || rl.IsKeyDown(.W)) && state.last_dir != DIR_DOWN {
-            state.next_dir = DIR_UP
-            state.held_dir = DIR_UP
+        state.speed_multiplier = 1
+
+        if (rl.IsKeyDown(.UP) || rl.IsKeyDown(.W)) && state.current_dir != DIR_DOWN {
+            state.target_dir = DIR_UP
             state.status = .Run
-        } else if (rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S)) && state.last_dir != DIR_UP {
-            state.next_dir = DIR_DOWN
-            state.held_dir = DIR_DOWN
+            state.speed_multiplier = state.current_dir == state.target_dir ? 2 : 1
+        } else if (rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S)) && state.current_dir != DIR_UP {
+            state.target_dir = DIR_DOWN
             state.status = .Run
-        } else if (rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A)) && state.last_dir != DIR_RIGHT {
-            state.next_dir = DIR_LEFT
-            state.held_dir = DIR_LEFT
+            state.speed_multiplier = state.current_dir == state.target_dir ? 2 : 1
+        } else if (rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A)) && state.current_dir != DIR_RIGHT {
+            state.target_dir = DIR_LEFT
             state.status = .Run
-        } else if (rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D)) && state.last_dir != DIR_LEFT {
-            state.next_dir = DIR_RIGHT
-            state.held_dir = DIR_RIGHT
+            state.speed_multiplier = state.current_dir == state.target_dir ? 2 : 1
+        } else if (rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D)) && state.current_dir != DIR_LEFT {
+            state.target_dir = DIR_RIGHT
             state.status = .Run
+            state.speed_multiplier = state.current_dir == state.target_dir ? 2 : 1
         }
 
-        if state.is_editing {
-            if rl.IsKeyPressed(.E) {
-                state.cell_index = (state.cell_index + 1) % len(Cells)
-            } else if rl.IsKeyPressed(.Q) {
-                state.cell_index -= 1
-                if state.cell_index < 0 do state.cell_index = len(Cells) - 1
-            }
+        // if state.is_editing {
+        //     if rl.IsKeyPressed(.E) {
+        //         state.cell_index = (state.cell_index + 1) % len(Cells)
+        //     } else if rl.IsKeyPressed(.Q) {
+        //         state.cell_index -= 1
+        //         if state.cell_index < 0 do state.cell_index = len(Cells) - 1
+        //     }
             
-            if rl.IsMouseButtonDown(.LEFT) {
-                levelData := &g_mem.levels[state.level]
+        //     if rl.IsMouseButtonDown(.LEFT) {
+        //         levelData := &g_mem.levels[state.level]
                 
-                mousePos := get_scaled_mouse_position()
-                xCell := int(mousePos.x / 50)
-                yCell := int(mousePos.y / 50)
-                cell := Cells[state.cell_index]
+        //         mousePos := get_scaled_mouse_position()
+        //         xCell := int(mousePos.x / 50)
+        //         yCell := int(mousePos.y / 50)
+        //         cell := Cells[state.cell_index]
                 
-                i := position_to_index({xCell, yCell}, levelData.width)
+        //         i := position_to_index({xCell, yCell}, levelData.width)
                 
-                if cell == .Tail {
-                    tailIndex := position_to_index(levelData.snake_tail_pos, levelData.width)
-                    levelData.grid[tailIndex] = levelData.grid[i]
-                    levelData.grid[i] = .Tail
-                    levelData.snake_tail_pos = {xCell, yCell}
-                    state.snake[0] = {xCell, yCell}
-                    // restart_level()
-                } else if cell == .Head {
-                    headIndex := position_to_index(levelData.snake_head_pos, levelData.width)
-                    levelData.grid[headIndex] = levelData.grid[i]
-                    levelData.grid[i] = .Head
-                    levelData.snake_head_pos = {xCell, yCell}
-                    state.snake[1] = {xCell, yCell}
-                    // restart_level()
-                } else {
-                    levelData.grid[i] = cell
-                }
-            }
+        //         if cell == .Tail {
+        //             tailIndex := position_to_index(levelData.snake_tail_pos, levelData.width)
+        //             levelData.grid[tailIndex] = levelData.grid[i]
+        //             levelData.grid[i] = .Tail
+        //             levelData.snake_tail_pos = {xCell, yCell}
+        //             state.snake[0] = {xCell, yCell}
+        //         } else if cell == .Head {
+        //             headIndex := position_to_index(levelData.snake_head_pos, levelData.width)
+        //             levelData.grid[headIndex] = levelData.grid[i]
+        //             levelData.grid[i] = .Head
+        //             levelData.snake_head_pos = {xCell, yCell}
+        //             state.snake[1] = {xCell, yCell}
+        //         } else {
+        //             levelData.grid[i] = cell
+        //         }
+        //     }
             
-            if rl.IsKeyPressed(.F4) {
-                save_level(&g_mem.levels[state.level], state.level)
-            }
-        }
+        //     if rl.IsKeyPressed(.F4) {
+        //         save_level(&g_mem.levels[state.level], state.level)
+        //     }
+        // }
     }
 }
 
 level_update :: proc() {
     state := &g_mem.level_state
-
     if state.status != .Run {
         return
     }
-
+    
+    levelData := &g_mem.levels[state.level]
+    currentCell := levelData.grid[position_to_index(state.current_pos, levelData.width)]
+    if currentCell == .Sand {
+        state.speed_multiplier = 1
+    }
+    
 	state.time += rl.GetFrameTime()
-	state.tick_timer -= rl.GetFrameTime()
+	state.tick_timer -= rl.GetFrameTime() * state.speed_multiplier
 
-	if state.tick_timer <= 0 {
-        if state.length == 0 do return
-		
-		lastPos := state.snake[state.length - 1]
-        
-		levelData := &g_mem.levels[state.level]
-        currentCell := levelData.grid[position_to_index(lastPos, levelData.width)]
+    if state.tick_timer <= 0 {
+        append(&state.snake_body, state.target_pos)
+        state.length += 1
 
-		tickRate : f32 = currentCell == .Sand ? SLOW_TICK_RATE : FAST_TICK_RATE
-		state.tick_timer += tickRate
-
-        if currentCell == .Ice {
-            state.next_dir = state.last_dir
+        targetCell := levelData.grid[position_to_index(state.target_pos, levelData.width)]
+        if targetCell == .Ice {
+            state.target_dir = state.current_dir
         }
 
-        nextPos := lastPos + state.next_dir
+        state.current_pos = state.target_pos
+        state.target_pos += state.target_dir
 
-		
-		if nextPos == lastPos do return
-		if nextPos.x < 0 || nextPos.x >= levelData.width || nextPos.y < 0 || nextPos.y >= levelData.height do return
+        state.current_dir = state.target_dir
 
-		for pos in state.snake {
-			if nextPos == pos {
-				you_fucking_died()
-				return
-			}
-		}
-		
-		nextCell := levelData.grid[position_to_index(nextPos, levelData.width)]
-		if nextCell == .Goal {
+        if state.target_pos.x < 0 || state.target_pos.x >= levelData.width || state.target_pos.y < 0 || state.target_pos.y >= levelData.height do return
+
+        if targetCell == .Wall {
+            you_fucking_died()
+        } else if targetCell == .Goal {
             you_fucking_won()
-		} else if nextCell == .Wall {
-			you_fucking_died()
-		} else {
+        }
 
-			state.last_dir = state.next_dir
-            append(&state.snake, nextPos)
-			state.length += 1
-		}
-	}
+        for pos in state.snake_body {
+            if state.target_pos == pos {
+                you_fucking_died()
+                return
+            }
+        }
+
+
+        state.tick_timer += TICK_RATE
+    }
+
+    percentage := math.min((1 - math.max(state.tick_timer, 0) / TICK_RATE), 0.98)
+    state.frame_index = int(4 * percentage)
+    state.head_frame_index = int(9 * percentage)
+
+	// if state.tick_timer <= 0 {
+	// 	lastPos := state.snake[state.length - 1]
+        
+	// 	levelData := &g_mem.levels[state.level]
+    //     currentCell := levelData.grid[position_to_index(lastPos, levelData.width)]
+
+	// 	// tickRate : f32 = currentCell == .Sand ? SLOW_TICK_RATE : FAST_TICK_RATE
+	// 	// state.tick_timer += tickRate
+    //     state.tick_timer += FAST_TICK_RATE
+
+    //     if currentCell == .Ice {
+    //         state.next_dir = state.last_dir
+    //     }
+
+    //     nextPos := lastPos + state.next_dir
+    //     state.next_pos = nextPos + state.next_dir
+
+		
+	// 	if nextPos == lastPos do return
+	// 	if nextPos.x < 0 || nextPos.x >= levelData.width || nextPos.y < 0 || nextPos.y >= levelData.height do return
+
+	// 	for pos in state.snake {
+	// 		if nextPos == pos {
+	// 			you_fucking_died()
+	// 			return
+	// 		}
+	// 	}
+		
+	// 	nextCell := levelData.grid[position_to_index(nextPos, levelData.width)]
+	// 	if nextCell == .Goal {
+    //         you_fucking_won()
+	// 	} else if nextCell == .Wall {
+	// 		you_fucking_died()
+	// 	} else {
+	// 		state.last_dir = state.next_dir
+    //         append(&state.snake, nextPos)
+	// 		state.length += 1
+	// 	}
+	// }
 }
 
 level_draw :: proc() {
@@ -176,11 +236,26 @@ level_draw :: proc() {
         case .Sand: 
             rl.DrawRectangleRec(rect, rl.YELLOW)
 		}
+        
+        if pos == state.current_pos {
+            // rl.DrawRectangleLinesEx(rect, 3, rl.GRAY)
+        }
+
+        if pos == state.target_pos {
+            // rl.DrawRectangleLinesEx(rect, 3, rl.LIGHTGRAY)
+        }
 	}
 
-	for i in 0..<state.length {
-		pos := state.snake[i]
+	for i in 1..<len(state.snake_body) {
+        dirFromPrev := state.snake_body[i] - state.snake_body[i - 1]
+        dirToNext : Vec2i
+        if i == len(state.snake_body) - 1 {
+            dirToNext = state.target_pos - state.snake_body[i]
+        } else {
+            dirToNext = state.snake_body[i + 1] - state.snake_body[i]
+        }
 
+        pos := state.snake_body[i]
 		dest := rl.Rectangle {
 			x = f32(pos.x) * cellWidth + cellWidth / 2,
 			y = f32(pos.y) * cellHeight + cellHeight / 2,
@@ -188,33 +263,74 @@ level_draw :: proc() {
 			height = cellHeight,
 		}
 
-		dir := i == 0 ? state.snake[i] - state.snake[i + 1] : state.snake[i] - state.snake[i - 1]
-		rot := math.atan2(f32(dir.y), f32(dir.x)) * math.DEG_PER_RAD
+		rot := math.atan2(f32(dirFromPrev.y), f32(dirFromPrev.x)) * math.DEG_PER_RAD
 
-		if i == 0 {
-			draw_texture(g_mem.snake_tail_texture, dest, {cellWidth, cellHeight}, rot - 90)
-		} else if i == state.length - 1 {
-			draw_texture(g_mem.snake_head_texture, dest, {cellWidth, cellHeight}, rot + 90)
-		} else {
-			nextDir := state.snake[i + 1] - state.snake[i]
-			if nextDir == dir {
-				draw_texture(g_mem.snake_body_texture, dest, {cellWidth, cellHeight}, rot + 90)
-			} else {
-				if dir == DIR_RIGHT && nextDir == DIR_DOWN || dir == DIR_UP && nextDir == DIR_LEFT {
-					rot = 0
-				} else if dir == DIR_DOWN && nextDir == DIR_LEFT || dir == DIR_RIGHT && nextDir == DIR_UP {
-					rot = 90
-				} else if dir == DIR_LEFT && nextDir == DIR_UP || dir == DIR_DOWN && nextDir == DIR_RIGHT {
-					rot = 180
-				} else {
-					rot = 270
-				}
+        if dirFromPrev == dirToNext {
+            if i == len(state.snake_body) - 1 {
+                draw_texture(g_mem.snake_body_grow_textures[state.frame_index], dest, {cellWidth, cellHeight}, rot + 90)
+            } else {
+                draw_texture(g_mem.snake_body_textures[state.frame_index], dest, {cellWidth, cellHeight}, rot + 90)
+            }
+        } else {
+            texture : rl.Texture
+            if dirFromPrev == DIR_UP && dirToNext == DIR_RIGHT {
+                texture = g_mem.snake_bend_right_textures[state.frame_index]
+                rot = 0
+            } else if dirFromPrev == DIR_RIGHT && dirToNext == DIR_DOWN {
+                texture = g_mem.snake_bend_right_textures[state.frame_index]
+                rot = 90
+            } else if dirFromPrev == DIR_DOWN && dirToNext == DIR_LEFT {
+                texture = g_mem.snake_bend_right_textures[state.frame_index]
+                rot = 180
+            } else if dirFromPrev == DIR_LEFT && dirToNext == DIR_UP {
+                texture = g_mem.snake_bend_right_textures[state.frame_index]
+                rot = 270
+            }
 
-				draw_texture(g_mem.snake_bend_texture, dest, {cellWidth, cellHeight}, rot)
-			}
-
-		}
+            if dirFromPrev == DIR_UP && dirToNext == DIR_LEFT {
+                texture = g_mem.snake_bend_left_textures[state.frame_index]
+                rot = 0
+            } else if dirFromPrev == DIR_LEFT && dirToNext == DIR_DOWN {
+                texture = g_mem.snake_bend_left_textures[state.frame_index]
+                rot = 270
+            } else if dirFromPrev == DIR_DOWN && dirToNext == DIR_RIGHT {
+                texture = g_mem.snake_bend_left_textures[state.frame_index]
+                rot = 180
+            } else if dirFromPrev == DIR_RIGHT && dirToNext == DIR_UP {
+                texture = g_mem.snake_bend_left_textures[state.frame_index]
+                rot = 90
+            }
+            
+            draw_texture(texture, dest, {cellWidth, cellHeight}, rot)
+        }
 	}
+
+    dest := rl.Rectangle {
+        x = f32(state.current_pos.x) * cellWidth + cellWidth / 2,
+        y = f32(state.current_pos.y) * cellHeight + cellHeight / 2,
+        width = cellWidth,
+        height = cellHeight,
+    }
+
+    dir := state.current_dir
+    rot := math.atan2(f32(dir.y), f32(dir.x)) * math.DEG_PER_RAD
+
+    
+    nextPosScreenSpace := rl.Vector2{
+        f32(state.target_pos.x) * cellWidth + cellWidth / 2,
+        f32(state.target_pos.y) * cellHeight + cellHeight / 2,
+    }
+    
+    t := f32(state.frame_index) / 4
+    if state.status == .Run {
+        fmt.println(t)
+        fmt.println(dest)
+        fmt.println(state.tick_timer)
+    }
+    dest.x = math.lerp(dest.x, nextPosScreenSpace.x, t)
+    dest.y = math.lerp(dest.y, nextPosScreenSpace.y, t)
+
+    draw_texture(g_mem.snake_head_texture, dest, {cellWidth, cellHeight}, rot + 90)
 
 	rl.DrawTextEx(g_mem.font, fmt.ctprintf("Level %v", state.level + 1), {50, 25}, 50, 0, rl.WHITE)
 	rl.DrawTextEx(g_mem.font, fmt.ctprintf("Length: %v", state.length), {300, 25}, 50, 0, rl.WHITE)
@@ -287,7 +403,6 @@ you_fucking_died :: proc() {
         g_mem.highScores[state.level] = state.score
         save_scores()
     }
-
 }
 
 restart_level :: proc() {
@@ -295,15 +410,19 @@ restart_level :: proc() {
     state.status = .Paused
 	state.time = 0
 	state.score = 0
-	state.tick_timer = 0
-	state.last_dir = DIR_NONE
-    state.next_dir = DIR_NONE
-    state.held_dir = DIR_NONE
+	state.tick_timer = TICK_RATE
     state.length = 2
     state.cell_index = 0
+    state.frame_index = 0
+    state.speed_multiplier = 1
 
     levelData := &g_mem.levels[state.level]
-    clear(&state.snake)
-    append(&state.snake, levelData.snake_tail_pos)
-    append(&state.snake, levelData.snake_head_pos)
+    clear(&state.snake_body)
+    append(&state.snake_body, levelData.start_pos - levelData.start_dir)
+    append(&state.snake_body, levelData.start_pos)
+
+    state.current_pos = levelData.start_pos
+    state.current_dir = levelData.start_dir
+    state.target_pos = state.current_pos + state.current_dir
+    state.target_dir = levelData.start_dir
 }

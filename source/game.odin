@@ -36,8 +36,7 @@ import "core:math"
 // import "core:os"
 
 PIXEL_WINDOW_SIZE :: 1050
-SLOW_TICK_RATE :: 0.40
-FAST_TICK_RATE :: 0.20
+TICK_RATE :: 0.50
 LEVEL_COUNT :: 9
 
 DIR_NONE  :: Vec2i{0, 0}
@@ -52,20 +51,24 @@ Cell :: enum {
 	Empty,
     Wall,
     Goal,
-	Tail,
-	Head,
+	SnakeUp,
+	SnakeDown,
+	SnakeLeft,
+	SnakeRight,
 	Ice,
 	Sand,
 }
 
-Cells := [7]Cell {
+Cells := [9]Cell {
 	.Empty,
     .Wall,
     .Goal,
-	.Tail,
-	.Head,
 	.Ice,
 	.Sand,
+	.SnakeUp,
+	.SnakeDown,
+	.SnakeLeft,
+	.SnakeRight,
 }
 
 Button :: struct {
@@ -79,8 +82,8 @@ Level :: struct {
 	grid: [dynamic]Cell,
 	width: int,
 	height: int,
-	snake_tail_pos: Vec2i,
-	snake_head_pos: Vec2i,
+	start_pos: Vec2i,
+	start_dir: Vec2i,
 }
 
 Level_Status :: enum {
@@ -90,30 +93,16 @@ Level_Status :: enum {
 	Win,
 }
 
-Level_State :: struct {
-	level: i32,
-	status: Level_Status,
-	time: f32,
-	score: i32,
-	tick_timer: f32,
-	last_dir: Vec2i,
-	next_dir: Vec2i,
-	held_dir: Vec2i,
-	length: i32,
-	snake: [dynamic]Vec2i,
-	is_editing: bool,
-
-	cell_index: i32,
-}
-
 Game_Memory :: struct {
 	run: bool,
 	on_main_menu: bool,
 	
 	snake_head_texture: rl.Texture,
 	snake_tail_texture: rl.Texture,
-	snake_body_texture: rl.Texture,
-	snake_bend_texture: rl.Texture,
+	snake_body_textures: [4]rl.Texture,
+	snake_body_grow_textures: [4]rl.Texture,
+	snake_bend_left_textures: [4]rl.Texture,
+	snake_bend_right_textures: [4]rl.Texture,
 	background_texture: rl.Texture,
 	font: rl.Font,
 
@@ -147,14 +136,18 @@ save_level :: proc(level: ^Level, slot: i32) {
 			strings.write_rune(&b, '#')
 			case .Goal: 
 			strings.write_rune(&b, 'X')
-			case .Tail: 
-			strings.write_rune(&b, 'T')
-			case .Head: 
-			strings.write_rune(&b, 'H')
 			case .Ice: 
 			strings.write_rune(&b, 'I')
 			case .Sand: 
 			strings.write_rune(&b, 'S')
+			case .SnakeUp: 
+			strings.write_rune(&b, '^')
+			case .SnakeDown: 
+			strings.write_rune(&b, 'V')
+			case .SnakeLeft: 
+			strings.write_rune(&b, '<')
+			case .SnakeRight: 
+			strings.write_rune(&b, '>')
 			}
 		}
 
@@ -174,11 +167,11 @@ load_levels :: proc() {
 		lines := strings.split(string(bytes), "\r\n")
 		defer delete(lines)
 
-		tailPos : Vec2i
-		headPos : Vec2i
 		height := len(lines)
 		width := len(lines[0])
 		grid := make([dynamic]Cell, width * height)
+		startPos : Vec2i
+		startDir : Vec2i
 
 		for &line, y in lines {
 			for char, x in line {
@@ -187,12 +180,22 @@ load_levels :: proc() {
 				else if char == 'X' do cell = .Goal
 				else if char == 'I' do cell = .Ice
 				else if char == 'S' do cell = .Sand
-				else if char == 'T' {
-					cell = .Tail
-					tailPos = {x, y}
-				} else if char == 'H' {
-					cell = .Head
-					headPos = {x, y}
+				else if char == '^' {
+					cell = .SnakeUp
+					startPos = {x, y}
+					startDir = DIR_UP
+				} else if char == 'V' {
+					cell = .SnakeDown
+					startPos = {x, y}
+					startDir = DIR_DOWN
+				} else if char == '<' {
+					cell = .SnakeLeft
+					startPos = {x, y}
+					startDir = DIR_LEFT
+				} else if char == '>' {
+					cell = .SnakeRight
+					startPos = {x, y}
+					startDir = DIR_RIGHT
 				}
 
 				grid[position_to_index({x, y}, width)] = cell
@@ -203,8 +206,8 @@ load_levels :: proc() {
 			height = len(lines),
 			width = len(lines[0]),
 			grid = grid,
-			snake_tail_pos = tailPos,
-			snake_head_pos = headPos,
+			start_pos = startPos,
+			start_dir = startDir,
 		}
 
 		g_mem.levels[i] = level
@@ -265,16 +268,38 @@ game_init :: proc() {
 	g_mem^ = Game_Memory {
 		run = true,
 
-		snake_head_texture = rl.LoadTexture("assets/head.png"),
+		snake_head_texture = rl.LoadTexture("assets/headmiddle.png"),
 		snake_tail_texture = rl.LoadTexture("assets/butt1.png"),
-		snake_body_texture = rl.LoadTexture("assets/body1.png"),
-		snake_bend_texture = rl.LoadTexture("assets/turn1.png"),
+		snake_body_textures = {
+			rl.LoadTexture("assets/frame1.png"), 
+			rl.LoadTexture("assets/frame2.png"),
+			rl.LoadTexture("assets/frame3.png"),
+			rl.LoadTexture("assets/frame4.png"),
+		},
+		snake_body_grow_textures = {
+			rl.LoadTexture("assets/frame1 half.png"), 
+			rl.LoadTexture("assets/frame 2 half.png"),
+			rl.LoadTexture("assets/frame3 half.png"),
+			rl.LoadTexture("assets/frame4.png"),
+		},
+		snake_bend_left_textures = {
+			rl.LoadTexture("assets/side1.png"), 
+			rl.LoadTexture("assets/side2.png"),
+			rl.LoadTexture("assets/side3.png"),
+			rl.LoadTexture("assets/side4.png"),
+		},
+		snake_bend_right_textures = {
+			rl.LoadTexture("assets/rside1.png"), 
+			rl.LoadTexture("assets/rside2.png"),
+			rl.LoadTexture("assets/rside3.png"),
+			rl.LoadTexture("assets/rside4.png"),
+		},
 		background_texture = rl.LoadTexture("assets/background.png"),
 		font = rl.LoadFontEx("assets/SpaceMono-Regular.ttf", 200, nil, 0),
 		on_main_menu = true,
 	}
 
-	g_mem.level_state.snake = make([dynamic]Vec2i)
+	g_mem.level_state.snake_body = make([dynamic]Vec2i)
 
 	padding := 20
 	for &button, i in g_mem.main_menu_buttons {
@@ -309,7 +334,7 @@ game_shutdown :: proc() {
 		delete(g_mem.levels[i].grid)
 	}
 
-	delete(g_mem.level_state.snake)
+	delete(g_mem.level_state.snake_body)
 	
 	free(g_mem)
 }

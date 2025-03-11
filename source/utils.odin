@@ -49,8 +49,8 @@ position_to_index :: proc(position: Vec2i, width: int) -> int {
 draw_texture :: proc(texture: rl.Texture, dest: rl.Rectangle, cellSize: rl.Vector2, rot: f32) {
 	source := rl.Rectangle {
 		0, 0,
-		f32(texture.width),
-		f32(texture.height),
+		f32(cellSize.x),
+		f32(cellSize.y),
 	}
 
 	rl.DrawTexturePro(texture, source, dest, cellSize * 0.5, rot, rl.WHITE)
