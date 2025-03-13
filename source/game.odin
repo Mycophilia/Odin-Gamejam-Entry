@@ -93,6 +93,15 @@ Level_Status :: enum {
 	Win,
 }
 
+Face :: enum {
+	Normal,
+	Zooming,
+	Freezing,
+	Sandy,
+	Pog,
+	Dead,
+}
+
 Game_Memory :: struct {
 	run: bool,
 	on_main_menu: bool,
@@ -105,6 +114,8 @@ Game_Memory :: struct {
 	snake_body_grow_textures: [4]rl.Texture,
 	snake_bend_left_textures: [4]rl.Texture,
 	snake_bend_right_textures: [4]rl.Texture,
+	snake_face_textures: [Face]rl.Texture,
+	level_textures: [LEVEL_COUNT]rl.Texture,
 	background_texture: rl.Texture,
 	font: rl.Font,
 
@@ -334,6 +345,17 @@ game_init :: proc() {
 		music = rl.LoadMusicStream("./assets/sounds/music.mp3"),
 		sound_die = rl.LoadSound("./assets/sounds/die.mp3"),
 		sound_win = rl.LoadSound("./assets/sounds/win.mp3"),
+	}
+
+	g_mem.snake_face_textures[.Normal] = rl.LoadTexture("./assets/images/faceNormal.png")
+	g_mem.snake_face_textures[.Zooming] = rl.LoadTexture("./assets/images/faceZooming.png")
+	g_mem.snake_face_textures[.Freezing] = rl.LoadTexture("./assets/images/faceFreezing.png")
+	g_mem.snake_face_textures[.Sandy] = rl.LoadTexture("./assets/images/faceSandy.png")
+	g_mem.snake_face_textures[.Pog] = rl.LoadTexture("./assets/images/facePog.png")
+	g_mem.snake_face_textures[.Dead] = rl.LoadTexture("./assets/images/faceDead.png")
+
+	for i in 0..<LEVEL_COUNT {
+		g_mem.level_textures[i] = rl.LoadTexture(fmt.ctprintf("./assets/images/lvl%v.png", i + 1))
 	}
 
 	rl.PlayMusicStream(g_mem.music)

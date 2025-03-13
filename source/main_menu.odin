@@ -65,7 +65,6 @@ main_menu_draw :: proc() {
 
     draw_button(g_mem.mute_button)
 
-    // rl.DrawRectangleRec(g_mem.mute_button.rect, rl.BLUE)
     rl.DrawRectangleRec(g_mem.reset_score_button.rect, rl.BLUE)
 
 	rl.EndMode2D()
