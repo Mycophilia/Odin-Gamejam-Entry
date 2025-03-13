@@ -60,6 +60,14 @@ level_process_input :: proc() {
                 select_level(int((state.level + 1) % LEVEL_COUNT))
             }
         }
+
+        if rl.IsKeyPressed(.ESCAPE) {
+            g_mem.on_main_menu = true
+        } else if rl.IsKeyPressed(.R) {
+            restart_level()
+        } else if rl.IsKeyPressed(.ENTER) || rl.IsKeyPressed(.SPACE) {
+            select_level(int((state.level + 1) % LEVEL_COUNT))
+        }
     } else {
         state.speed_multiplier = 1
         if (rl.IsKeyDown(.UP) || rl.IsKeyDown(.W)) && state.current_dir != DIR_DOWN {
@@ -80,45 +88,49 @@ level_process_input :: proc() {
             state.speed_multiplier = 2
         }
 
-        // if state.is_editing {
-        //     if rl.IsKeyPressed(.E) {
-        //         state.cell_index = (state.cell_index + 1) % len(Cells)
-        //     } else if rl.IsKeyPressed(.Q) {
-        //         state.cell_index -= 1
-        //         if state.cell_index < 0 do state.cell_index = len(Cells) - 1
-        //     }
+        if state.is_editing {
+            if rl.IsKeyPressed(.E) {
+                state.cell_index = (state.cell_index + 1) % len(Cells)
+            } else if rl.IsKeyPressed(.Q) {
+                state.cell_index -= 1
+                if state.cell_index < 0 do state.cell_index = len(Cells) - 1
+            }
             
-        //     if rl.IsMouseButtonDown(.LEFT) {
-        //         levelData := &g_mem.levels[state.level]
+            if rl.IsMouseButtonDown(.LEFT) {
+                levelData := &g_mem.levels[state.level]
                 
-        //         mousePos := get_scaled_mouse_position()
-        //         xCell := int(mousePos.x / 50)
-        //         yCell := int(mousePos.y / 50)
-        //         cell := Cells[state.cell_index]
+                mousePos := get_scaled_mouse_position()
+                xCell := int(mousePos.x / 50)
+                yCell := int(mousePos.y / 50)
+                cell := Cells[state.cell_index]
                 
-        //         i := position_to_index({xCell, yCell}, levelData.width)
+                i := position_to_index({xCell, yCell}, levelData.width)
                 
-        //         if cell == .Tail {
-        //             tailIndex := position_to_index(levelData.snake_tail_pos, levelData.width)
-        //             levelData.grid[tailIndex] = levelData.grid[i]
-        //             levelData.grid[i] = .Tail
-        //             levelData.snake_tail_pos = {xCell, yCell}
-        //             state.snake[0] = {xCell, yCell}
-        //         } else if cell == .Head {
-        //             headIndex := position_to_index(levelData.snake_head_pos, levelData.width)
-        //             levelData.grid[headIndex] = levelData.grid[i]
-        //             levelData.grid[i] = .Head
-        //             levelData.snake_head_pos = {xCell, yCell}
-        //             state.snake[1] = {xCell, yCell}
-        //         } else {
-        //             levelData.grid[i] = cell
-        //         }
-        //     }
+                if cell == .SnakeDown || cell == .SnakeLeft || cell == .SnakeRight || cell == .SnakeUp {
+                    startIndex := position_to_index(levelData.start_pos, levelData.width)
+                    levelData.grid[startIndex] = .Wall
+                    levelData.start_pos = {xCell, yCell}
+
+                    if cell == .SnakeDown do levelData.start_dir = DIR_DOWN
+                    else if cell == .SnakeLeft do levelData.start_dir = DIR_LEFT
+                    else if cell == .SnakeRight do levelData.start_dir = DIR_RIGHT
+                    else if cell == .SnakeUp do levelData.start_dir = DIR_UP
+
+                    state.snake_body[0] = levelData.start_pos - levelData.start_dir
+                    state.snake_body[1] = levelData.start_pos
+                    state.current_pos = levelData.start_pos
+                    state.target_pos = levelData.start_pos + levelData.start_dir
+                    state.current_dir = levelData.start_dir
+                    state.target_dir = levelData.start_dir
+                }
+
+                levelData.grid[i] = cell
+            }
             
-        //     if rl.IsKeyPressed(.F4) {
-        //         save_level(&g_mem.levels[state.level], state.level)
-        //     }
-        // }
+            if rl.IsKeyPressed(.F4) {
+                save_level(&g_mem.levels[state.level], state.level)
+            }
+        }
     }
 }
 
@@ -363,7 +375,7 @@ level_draw :: proc() {
 
 
     if state.is_editing {
-        rl.DrawTextEx(g_mem.font, fmt.ctprintf("Cell: %v", Cells[state.cell_index]), {50, 74}, 25, 0, rl.WHITE)
+        rl.DrawTextEx(g_mem.font, fmt.ctprintf("Cell: %v", Cells[state.cell_index]), {800, 50}, 40, 0, rl.BLACK)
     }
 
     if state.status == .GameOver || state.status == .Win {
