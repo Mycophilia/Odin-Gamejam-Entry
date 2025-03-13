@@ -31,7 +31,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\Emil\AppData\Local\Temp\tmpq82ysqdp.js
+// include: C:\Users\Emil\AppData\Local\Temp\tmp0b1grncd.js
 
   Module['expectedDataFileDownloads'] ??= 0;
   Module['expectedDataFileDownloads']++;
@@ -142,6 +142,9 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
         if (!check) throw msg + new Error().stack;
       }
 Module['FS_createPath']("/", "assets", true, true);
+Module['FS_createPath']("/assets", "images", true, true);
+Module['FS_createPath']("/assets", "levels", true, true);
+Module['FS_createPath']("/assets", "sounds", true, true);
 
       /** @constructor */
       function DataRequest(start, end, audio) {
@@ -208,25 +211,25 @@ Module['FS_createPath']("/", "assets", true, true);
     }
 
     }
-    loadPackage({"files": [{"filename": "/assets/SpaceMono-Regular.ttf", "start": 0, "end": 98320}, {"filename": "/assets/background.png", "start": 98320, "end": 191321}, {"filename": "/assets/body1.png", "start": 191321, "end": 192659}, {"filename": "/assets/body2.png", "start": 192659, "end": 193896}, {"filename": "/assets/bodyhalf.png", "start": 193896, "end": 194788}, {"filename": "/assets/butt1.png", "start": 194788, "end": 196566}, {"filename": "/assets/frame 2 half.png", "start": 196566, "end": 197668}, {"filename": "/assets/frame1 half.png", "start": 197668, "end": 198466}, {"filename": "/assets/frame1.png", "start": 198466, "end": 199778}, {"filename": "/assets/frame2.png", "start": 199778, "end": 201198}, {"filename": "/assets/frame3 half.png", "start": 201198, "end": 202288}, {"filename": "/assets/frame3.png", "start": 202288, "end": 203499}, {"filename": "/assets/frame4.png", "start": 203499, "end": 204912}, {"filename": "/assets/h1.png", "start": 204912, "end": 206231}, {"filename": "/assets/h2.png", "start": 206231, "end": 207728}, {"filename": "/assets/h3.png", "start": 207728, "end": 209390}, {"filename": "/assets/h4.png", "start": 209390, "end": 211347}, {"filename": "/assets/h5.png", "start": 211347, "end": 213386}, {"filename": "/assets/h6.png", "start": 213386, "end": 215593}, {"filename": "/assets/h7.png", "start": 215593, "end": 217874}, {"filename": "/assets/h8.png", "start": 217874, "end": 220401}, {"filename": "/assets/h9.png", "start": 220401, "end": 222842}, {"filename": "/assets/head.png", "start": 222842, "end": 226962}, {"filename": "/assets/head1.png", "start": 226962, "end": 229390}, {"filename": "/assets/headdead.png", "start": 229390, "end": 231987}, {"filename": "/assets/headmiddle.png", "start": 231987, "end": 233301}, {"filename": "/assets/level_0.txt", "start": 233301, "end": 233782}, {"filename": "/assets/level_1.txt", "start": 233782, "end": 234263}, {"filename": "/assets/level_2.txt", "start": 234263, "end": 234744}, {"filename": "/assets/level_3.txt", "start": 234744, "end": 235225}, {"filename": "/assets/level_4.txt", "start": 235225, "end": 235706}, {"filename": "/assets/level_5.txt", "start": 235706, "end": 236187}, {"filename": "/assets/level_6.txt", "start": 236187, "end": 236668}, {"filename": "/assets/level_7.txt", "start": 236668, "end": 237149}, {"filename": "/assets/level_8.txt", "start": 237149, "end": 237630}, {"filename": "/assets/rside1.png", "start": 237630, "end": 239137}, {"filename": "/assets/rside2.png", "start": 239137, "end": 240599}, {"filename": "/assets/rside3.png", "start": 240599, "end": 242068}, {"filename": "/assets/rside4.png", "start": 242068, "end": 243619}, {"filename": "/assets/score.txt", "start": 243619, "end": 243674}, {"filename": "/assets/side1.png", "start": 243674, "end": 245375}, {"filename": "/assets/side2.png", "start": 245375, "end": 247046}, {"filename": "/assets/side3.png", "start": 247046, "end": 248749}, {"filename": "/assets/side4.png", "start": 248749, "end": 250493}, {"filename": "/assets/small_head.png", "start": 250493, "end": 251807}, {"filename": "/assets/smallbend.png", "start": 251807, "end": 253534}, {"filename": "/assets/smallbody.png", "start": 253534, "end": 254869}, {"filename": "/assets/test1.png", "start": 254869, "end": 256183}, {"filename": "/assets/test2.png", "start": 256183, "end": 257769}, {"filename": "/assets/test3.png", "start": 257769, "end": 259572}, {"filename": "/assets/turn1.png", "start": 259572, "end": 260986}], "remote_package_size": 260986});
+    loadPackage({"files": [{"filename": "/assets/SpaceMono-Regular.ttf", "start": 0, "end": 98320}, {"filename": "/assets/images/background.png", "start": 98320, "end": 191321}, {"filename": "/assets/images/body1.png", "start": 191321, "end": 192659}, {"filename": "/assets/images/body2.png", "start": 192659, "end": 193896}, {"filename": "/assets/images/bodyhalf.png", "start": 193896, "end": 194788}, {"filename": "/assets/images/butt1.png", "start": 194788, "end": 196566}, {"filename": "/assets/images/frame 2 half.png", "start": 196566, "end": 197668}, {"filename": "/assets/images/frame1 half.png", "start": 197668, "end": 198466}, {"filename": "/assets/images/frame1.png", "start": 198466, "end": 199778}, {"filename": "/assets/images/frame2.png", "start": 199778, "end": 201198}, {"filename": "/assets/images/frame3 half.png", "start": 201198, "end": 202288}, {"filename": "/assets/images/frame3.png", "start": 202288, "end": 203499}, {"filename": "/assets/images/frame4.png", "start": 203499, "end": 204912}, {"filename": "/assets/images/h1.png", "start": 204912, "end": 210242}, {"filename": "/assets/images/h2.png", "start": 210242, "end": 215732}, {"filename": "/assets/images/h3.png", "start": 215732, "end": 221368}, {"filename": "/assets/images/h4.png", "start": 221368, "end": 227219}, {"filename": "/assets/images/h5.png", "start": 227219, "end": 233175}, {"filename": "/assets/images/h6.png", "start": 233175, "end": 239291}, {"filename": "/assets/images/h7.png", "start": 239291, "end": 245497}, {"filename": "/assets/images/h8.png", "start": 245497, "end": 251930}, {"filename": "/assets/images/h9.png", "start": 251930, "end": 258279}, {"filename": "/assets/images/head.png", "start": 258279, "end": 262399}, {"filename": "/assets/images/head1.png", "start": 262399, "end": 264827}, {"filename": "/assets/images/headdead.png", "start": 264827, "end": 267424}, {"filename": "/assets/images/headmiddle.png", "start": 267424, "end": 268738}, {"filename": "/assets/images/hl1.png", "start": 268738, "end": 275307}, {"filename": "/assets/images/hr1.png", "start": 275307, "end": 281875}, {"filename": "/assets/images/muteButton.png", "start": 281875, "end": 288600}, {"filename": "/assets/images/rside1.png", "start": 288600, "end": 290107}, {"filename": "/assets/images/rside2.png", "start": 290107, "end": 291569}, {"filename": "/assets/images/rside3.png", "start": 291569, "end": 293038}, {"filename": "/assets/images/rside4.png", "start": 293038, "end": 294589}, {"filename": "/assets/images/side1.png", "start": 294589, "end": 296290}, {"filename": "/assets/images/side2.png", "start": 296290, "end": 297961}, {"filename": "/assets/images/side3.png", "start": 297961, "end": 299664}, {"filename": "/assets/images/side4.png", "start": 299664, "end": 301408}, {"filename": "/assets/images/small_head.png", "start": 301408, "end": 302722}, {"filename": "/assets/images/smallbend.png", "start": 302722, "end": 304449}, {"filename": "/assets/images/smallbody.png", "start": 304449, "end": 305784}, {"filename": "/assets/images/test1.png", "start": 305784, "end": 307098}, {"filename": "/assets/images/test2.png", "start": 307098, "end": 308684}, {"filename": "/assets/images/test3.png", "start": 308684, "end": 310487}, {"filename": "/assets/images/turn1.png", "start": 310487, "end": 311901}, {"filename": "/assets/levels/level_0.txt", "start": 311901, "end": 312382}, {"filename": "/assets/levels/level_1.txt", "start": 312382, "end": 312863}, {"filename": "/assets/levels/level_2.txt", "start": 312863, "end": 313344}, {"filename": "/assets/levels/level_3.txt", "start": 313344, "end": 313825}, {"filename": "/assets/levels/level_4.txt", "start": 313825, "end": 314306}, {"filename": "/assets/levels/level_5.txt", "start": 314306, "end": 314787}, {"filename": "/assets/levels/level_6.txt", "start": 314787, "end": 315268}, {"filename": "/assets/levels/level_7.txt", "start": 315268, "end": 315749}, {"filename": "/assets/levels/level_8.txt", "start": 315749, "end": 316230}, {"filename": "/assets/score.txt", "start": 316230, "end": 316256}, {"filename": "/assets/sounds/die.mp3", "start": 316256, "end": 350528, "audio": 1}, {"filename": "/assets/sounds/music.mp3", "start": 350528, "end": 8045992, "audio": 1}, {"filename": "/assets/sounds/win.mp3", "start": 8045992, "end": 8096872, "audio": 1}], "remote_package_size": 8096872});
 
   })();
 
-// end include: C:\Users\Emil\AppData\Local\Temp\tmpq82ysqdp.js
-// include: C:\Users\Emil\AppData\Local\Temp\tmp_ws_asn6.js
+// end include: C:\Users\Emil\AppData\Local\Temp\tmp0b1grncd.js
+// include: C:\Users\Emil\AppData\Local\Temp\tmpzx7s6206.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['$ww'] || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: C:\Users\Emil\AppData\Local\Temp\tmp_ws_asn6.js
-// include: C:\Users\Emil\AppData\Local\Temp\tmpbs21dfg2.js
+  // end include: C:\Users\Emil\AppData\Local\Temp\tmpzx7s6206.js
+// include: C:\Users\Emil\AppData\Local\Temp\tmp9c0bgae2.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: C:\Users\Emil\AppData\Local\Temp\tmpbs21dfg2.js
+  // end include: C:\Users\Emil\AppData\Local\Temp\tmp9c0bgae2.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -1025,48 +1028,58 @@ async function createWasm() {
 // === Body ===
 
 var ASM_CONSTS = {
-  140328: () => { if (document.fullscreenElement) return 1; },  
- 140374: () => { return document.getElementById('canvas').width; },  
- 140426: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 140494: () => { document.exitFullscreen(); },  
- 140521: () => { setTimeout(function() { Module.requestFullscreen(false, false); }, 100); },  
- 140594: () => { if (document.fullscreenElement) return 1; },  
- 140640: () => { return document.getElementById('canvas').width; },  
- 140692: () => { return screen.width; },  
- 140717: () => { document.exitFullscreen(); },  
- 140744: () => { setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { canvas.style.width="unset"; }, 100); }, 100); },  
- 140877: () => { return window.innerWidth; },  
- 140903: () => { return window.innerHeight; },  
- 140930: () => { if (document.fullscreenElement) return 1; },  
- 140976: () => { return document.getElementById('canvas').width; },  
- 141028: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 141096: () => { if (document.fullscreenElement) return 1; },  
- 141142: () => { return document.getElementById('canvas').width; },  
- 141194: () => { return screen.width; },  
- 141219: () => { return window.innerWidth; },  
- 141245: () => { return window.innerHeight; },  
- 141272: () => { if (document.fullscreenElement) return 1; },  
- 141318: () => { return document.getElementById('canvas').width; },  
- 141370: () => { return screen.width; },  
- 141395: () => { document.exitFullscreen(); },  
- 141422: () => { if (document.fullscreenElement) return 1; },  
- 141468: () => { return document.getElementById('canvas').width; },  
- 141520: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 141588: () => { document.exitFullscreen(); },  
- 141615: ($0) => { document.getElementById('canvas').style.opacity = $0; },  
- 141673: () => { return screen.width; },  
- 141698: () => { return screen.height; },  
- 141724: () => { return window.screenX; },  
- 141751: () => { return window.screenY; },  
- 141778: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
- 141831: ($0) => { document.getElementById("canvas").style.cursor = UTF8ToString($0); },  
- 141902: () => { document.getElementById('canvas').style.cursor = 'none'; },  
- 141959: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
- 142215: ($0) => { document.getElementById('canvas').style.cursor = UTF8ToString($0); },  
- 142286: () => { if (document.fullscreenElement) return 1; },  
- 142332: () => { return window.innerWidth; },  
- 142358: () => { return window.innerHeight; },  
- 142385: () => { if (document.pointerLockElement) return 1; }
+  304000: () => { if (document.fullscreenElement) return 1; },  
+ 304046: () => { return document.getElementById('canvas').width; },  
+ 304098: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 304166: () => { document.exitFullscreen(); },  
+ 304193: () => { setTimeout(function() { Module.requestFullscreen(false, false); }, 100); },  
+ 304266: () => { if (document.fullscreenElement) return 1; },  
+ 304312: () => { return document.getElementById('canvas').width; },  
+ 304364: () => { return screen.width; },  
+ 304389: () => { document.exitFullscreen(); },  
+ 304416: () => { setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { canvas.style.width="unset"; }, 100); }, 100); },  
+ 304549: () => { return window.innerWidth; },  
+ 304575: () => { return window.innerHeight; },  
+ 304602: () => { if (document.fullscreenElement) return 1; },  
+ 304648: () => { return document.getElementById('canvas').width; },  
+ 304700: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 304768: () => { if (document.fullscreenElement) return 1; },  
+ 304814: () => { return document.getElementById('canvas').width; },  
+ 304866: () => { return screen.width; },  
+ 304891: () => { return window.innerWidth; },  
+ 304917: () => { return window.innerHeight; },  
+ 304944: () => { if (document.fullscreenElement) return 1; },  
+ 304990: () => { return document.getElementById('canvas').width; },  
+ 305042: () => { return screen.width; },  
+ 305067: () => { document.exitFullscreen(); },  
+ 305094: () => { if (document.fullscreenElement) return 1; },  
+ 305140: () => { return document.getElementById('canvas').width; },  
+ 305192: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 305260: () => { document.exitFullscreen(); },  
+ 305287: ($0) => { document.getElementById('canvas').style.opacity = $0; },  
+ 305345: () => { return screen.width; },  
+ 305370: () => { return screen.height; },  
+ 305396: () => { return window.screenX; },  
+ 305423: () => { return window.screenY; },  
+ 305450: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
+ 305503: ($0) => { document.getElementById("canvas").style.cursor = UTF8ToString($0); },  
+ 305574: () => { document.getElementById('canvas').style.cursor = 'none'; },  
+ 305631: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
+ 305887: ($0) => { document.getElementById('canvas').style.cursor = UTF8ToString($0); },  
+ 305958: () => { if (document.fullscreenElement) return 1; },  
+ 306004: () => { return window.innerWidth; },  
+ 306030: () => { return window.innerHeight; },  
+ 306057: () => { if (document.pointerLockElement) return 1; },  
+ 306104: ($0, $1, $2, $3, $4) => { if (typeof window === 'undefined' || (window.AudioContext || window.webkitAudioContext) === undefined) { return 0; } if (typeof(window.miniaudio) === 'undefined') { window.miniaudio = { referenceCount: 0 }; window.miniaudio.device_type = {}; window.miniaudio.device_type.playback = $0; window.miniaudio.device_type.capture = $1; window.miniaudio.device_type.duplex = $2; window.miniaudio.device_state = {}; window.miniaudio.device_state.stopped = $3; window.miniaudio.device_state.started = $4; miniaudio.devices = []; miniaudio.track_device = function(device) { for (var iDevice = 0; iDevice < miniaudio.devices.length; ++iDevice) { if (miniaudio.devices[iDevice] == null) { miniaudio.devices[iDevice] = device; return iDevice; } } miniaudio.devices.push(device); return miniaudio.devices.length - 1; }; miniaudio.untrack_device_by_index = function(deviceIndex) { miniaudio.devices[deviceIndex] = null; while (miniaudio.devices.length > 0) { if (miniaudio.devices[miniaudio.devices.length-1] == null) { miniaudio.devices.pop(); } else { break; } } }; miniaudio.untrack_device = function(device) { for (var iDevice = 0; iDevice < miniaudio.devices.length; ++iDevice) { if (miniaudio.devices[iDevice] == device) { return miniaudio.untrack_device_by_index(iDevice); } } }; miniaudio.get_device_by_index = function(deviceIndex) { return miniaudio.devices[deviceIndex]; }; miniaudio.unlock_event_types = (function(){ return ['touchend', 'click']; })(); miniaudio.unlock = function() { for(var i = 0; i < miniaudio.devices.length; ++i) { var device = miniaudio.devices[i]; if (device != null && device.webaudio != null && device.state === window.miniaudio.device_state.started) { device.webaudio.resume().then(() => { Module._ma_device__on_notification_unlocked(device.pDevice); }, (error) => {console.error("Failed to resume audiocontext", error); }); } } miniaudio.unlock_event_types.map(function(event_type) { document.removeEventListener(event_type, miniaudio.unlock, true); }); }; miniaudio.unlock_event_types.map(function(event_type) { document.addEventListener(event_type, miniaudio.unlock, true); }); } window.miniaudio.referenceCount += 1; return 1; },  
+ 308262: () => { if (typeof(window.miniaudio) !== 'undefined') { window.miniaudio.referenceCount -= 1; if (window.miniaudio.referenceCount === 0) { delete window.miniaudio; } } },  
+ 308426: () => { return (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined); },  
+ 308530: () => { try { var temp = new (window.AudioContext || window.webkitAudioContext)(); var sampleRate = temp.sampleRate; temp.close(); return sampleRate; } catch(e) { return 0; } },  
+ 308701: ($0, $1, $2, $3, $4, $5) => { var deviceType = $0; var channels = $1; var sampleRate = $2; var bufferSize = $3; var pIntermediaryBuffer = $4; var pDevice = $5; if (typeof(window.miniaudio) === 'undefined') { return -1; } var device = {}; var audioContextOptions = {}; if (deviceType == window.miniaudio.device_type.playback && sampleRate != 0) { audioContextOptions.sampleRate = sampleRate; } device.webaudio = new (window.AudioContext || window.webkitAudioContext)(audioContextOptions); device.webaudio.suspend(); device.state = window.miniaudio.device_state.stopped; var channelCountIn = 0; var channelCountOut = channels; if (deviceType != window.miniaudio.device_type.playback) { channelCountIn = channels; } device.scriptNode = device.webaudio.createScriptProcessor(bufferSize, channelCountIn, channelCountOut); device.scriptNode.onaudioprocess = function(e) { if (device.intermediaryBufferView == null || device.intermediaryBufferView.length == 0) { device.intermediaryBufferView = new Float32Array(Module.HEAPF32.buffer, pIntermediaryBuffer, bufferSize * channels); } if (deviceType == miniaudio.device_type.capture || deviceType == miniaudio.device_type.duplex) { for (var iChannel = 0; iChannel < channels; iChannel += 1) { var inputBuffer = e.inputBuffer.getChannelData(iChannel); var intermediaryBuffer = device.intermediaryBufferView; for (var iFrame = 0; iFrame < bufferSize; iFrame += 1) { intermediaryBuffer[iFrame*channels + iChannel] = inputBuffer[iFrame]; } } _ma_device_process_pcm_frames_capture__webaudio(pDevice, bufferSize, pIntermediaryBuffer); } if (deviceType == miniaudio.device_type.playback || deviceType == miniaudio.device_type.duplex) { _ma_device_process_pcm_frames_playback__webaudio(pDevice, bufferSize, pIntermediaryBuffer); for (var iChannel = 0; iChannel < e.outputBuffer.numberOfChannels; ++iChannel) { var outputBuffer = e.outputBuffer.getChannelData(iChannel); var intermediaryBuffer = device.intermediaryBufferView; for (var iFrame = 0; iFrame < bufferSize; iFrame += 1) { outputBuffer[iFrame] = intermediaryBuffer[iFrame*channels + iChannel]; } } } else { for (var iChannel = 0; iChannel < e.outputBuffer.numberOfChannels; ++iChannel) { e.outputBuffer.getChannelData(iChannel).fill(0.0); } } }; if (deviceType == miniaudio.device_type.capture || deviceType == miniaudio.device_type.duplex) { navigator.mediaDevices.getUserMedia({audio:true, video:false}) .then(function(stream) { device.streamNode = device.webaudio.createMediaStreamSource(stream); device.streamNode.connect(device.scriptNode); device.scriptNode.connect(device.webaudio.destination); }) .catch(function(error) { console.log("Failed to get user media: " + error); }); } if (deviceType == miniaudio.device_type.playback) { device.scriptNode.connect(device.webaudio.destination); } device.pDevice = pDevice; return miniaudio.track_device(device); },  
+ 311529: ($0) => { return miniaudio.get_device_by_index($0).webaudio.sampleRate; },  
+ 311595: ($0) => { var device = miniaudio.get_device_by_index($0); if (device.scriptNode !== undefined) { device.scriptNode.onaudioprocess = function(e) {}; device.scriptNode.disconnect(); device.scriptNode = undefined; } if (device.streamNode !== undefined) { device.streamNode.disconnect(); device.streamNode = undefined; } device.webaudio.close(); device.webaudio = undefined; device.pDevice = undefined; },  
+ 311988: ($0) => { miniaudio.untrack_device_by_index($0); },  
+ 312031: ($0) => { var device = miniaudio.get_device_by_index($0); device.webaudio.resume(); device.state = miniaudio.device_state.started; },  
+ 312156: ($0) => { var device = miniaudio.get_device_by_index($0); device.webaudio.suspend(); device.state = miniaudio.device_state.stopped; }
 };
 
 // end include: preamble.js
@@ -6999,7 +7012,7 @@ var ASM_CONSTS = {
       checkStackCookie();
       if (e instanceof WebAssembly.RuntimeError) {
         if (_emscripten_stack_get_current() <= 0) {
-          err('Stack overflow detected.  You can try increasing -sSTACK_SIZE (currently set to 65536)');
+          err('Stack overflow detected.  You can try increasing -sSTACK_SIZE (currently set to 200000)');
         }
       }
       quit_(1, e);
@@ -9891,6 +9904,11 @@ var _game_force_restart = Module['_game_force_restart'] = createExportWrapper('g
 var _malloc = createExportWrapper('malloc', 1);
 var _free = createExportWrapper('free', 1);
 var _fflush = createExportWrapper('fflush', 1);
+var _ma_device__on_notification_unlocked = Module['_ma_device__on_notification_unlocked'] = createExportWrapper('ma_device__on_notification_unlocked', 1);
+var _ma_malloc_emscripten = Module['_ma_malloc_emscripten'] = createExportWrapper('ma_malloc_emscripten', 2);
+var _ma_free_emscripten = Module['_ma_free_emscripten'] = createExportWrapper('ma_free_emscripten', 2);
+var _ma_device_process_pcm_frames_capture__webaudio = Module['_ma_device_process_pcm_frames_capture__webaudio'] = createExportWrapper('ma_device_process_pcm_frames_capture__webaudio', 3);
+var _ma_device_process_pcm_frames_playback__webaudio = Module['_ma_device_process_pcm_frames_playback__webaudio'] = createExportWrapper('ma_device_process_pcm_frames_playback__webaudio', 3);
 var _strerror = createExportWrapper('strerror', 1);
 var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
 var _emscripten_stack_get_free = () => (_emscripten_stack_get_free = wasmExports['emscripten_stack_get_free'])();

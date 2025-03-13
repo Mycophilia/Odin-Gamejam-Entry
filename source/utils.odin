@@ -27,7 +27,10 @@ draw_centered_text :: proc(text: cstring, x, y: f32, fontSize: f32,) {
 }
 
 button_clicked :: proc(button: Button, pos: [2]f32) -> bool {
-	return int(pos.x) >= button.x && int(pos.x) < button.x + button.width && int(pos.y) >= button.y && int(pos.y) < button.y + button.height
+	return rl.CheckCollisionPointRec(pos, button.rect)
+	// rect := button.rect
+	// rl.DrawRectangle()
+	// return int(pos.x) >= button.x && int(pos.x) < button.x + button.width && int(pos.y) >= button.y && int(pos.y) < button.y + button.height
 }
 
 get_scaled_mouse_position :: proc() -> [2]f32 {
@@ -54,4 +57,15 @@ draw_texture :: proc(texture: rl.Texture, dest: rl.Rectangle, cellSize: rl.Vecto
 	}
 
 	rl.DrawTexturePro(texture, source, dest, cellSize * 0.5, rot, rl.WHITE)
+}
+
+draw_button :: proc(button: Button) {
+	source := rl.Rectangle {
+		0,
+		f32(button.frame_index) * button.rect.height,
+		button.rect.width,
+		button.rect.height,
+	}
+
+	rl.DrawTexturePro(button.atlas, source, button.rect, {0, 0} / 2, 0, rl.WHITE)
 }

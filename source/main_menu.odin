@@ -14,6 +14,19 @@ main_menu_process_input :: proc() {
 				return
 			}
 		}
+
+        if button_clicked(g_mem.mute_button, mousePos) {
+            g_mem.is_muted = !g_mem.is_muted
+            g_mem.mute_button.frame_index = (g_mem.mute_button.frame_index + 1) % g_mem.mute_button.frame_count
+        }
+
+        if button_clicked(g_mem.reset_score_button, mousePos) {
+            for i in 0..<len(g_mem.high_scores) {
+                g_mem.high_scores[i] = 0
+            }
+
+            save_scores()
+        }
 	}
 }
 
@@ -32,7 +45,7 @@ main_menu_draw :: proc() {
 	defer delete(title)
 
 	totalScore : i32 = 0
-	for score in g_mem.highScores {
+	for score in g_mem.high_scores {
 		totalScore += score
 	}
 
@@ -40,14 +53,20 @@ main_menu_draw :: proc() {
 	draw_centered_text(fmt.ctprintf("Total Score: %v", totalScore), PIXEL_WINDOW_SIZE / 2, 175, 50)
 
 	for &button, i in g_mem.main_menu_buttons {
-		rl.DrawRectangleRec({f32(button.x), f32(button.y), f32(button.width), f32(button.height)}, rl.DARKGREEN)
+        rect := button.rect
+		rl.DrawRectangleRec(rect, rl.DARKGREEN)
 
-		score := g_mem.highScores[i]
+		score := g_mem.high_scores[i]
 
-		draw_centered_text(fmt.ctprintf("Level %v", i + 1), f32(button.x + button.width / 2), f32(button.y + 50), 50)
-		draw_centered_text("Score", f32(button.x + button.width / 2), f32(button.y + button.height / 2), 50)
-		draw_centered_text(fmt.ctprintf("%v", score), f32(button.x + button.width / 2), f32(button.y + button.height / 2 + 50), 50)
+		draw_centered_text(fmt.ctprintf("Level %v", i + 1), f32(rect.x + rect.width / 2), f32(rect.y + 50), 50)
+		draw_centered_text("Score", f32(rect.x + rect.width / 2), f32(rect.y + rect.height / 2), 50)
+		draw_centered_text(fmt.ctprintf("%v", score), f32(rect.x + rect.width / 2), f32(rect.y + rect.height / 2 + 50), 50)
 	}
+
+    draw_button(g_mem.mute_button)
+
+    // rl.DrawRectangleRec(g_mem.mute_button.rect, rl.BLUE)
+    rl.DrawRectangleRec(g_mem.reset_score_button.rect, rl.BLUE)
 
 	rl.EndMode2D()
 	rl.EndDrawing()

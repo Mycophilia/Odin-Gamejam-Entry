@@ -72,10 +72,10 @@ Cells := [9]Cell {
 }
 
 Button :: struct {
-	x: int,
-	y: int,
-	width: int,
-	height: int,
+	rect: rl.Rectangle,
+	atlas: rl.Texture,
+	frame_count: int,
+	frame_index: int,
 }
 
 Level :: struct {
@@ -97,7 +97,9 @@ Game_Memory :: struct {
 	run: bool,
 	on_main_menu: bool,
 	
-	snake_head_texture: rl.Texture,
+	snake_head_textures: [9]rl.Texture,
+	snake_head_left_textures: [1]rl.Texture,
+	snake_head_right_textures: [1]rl.Texture,
 	snake_tail_texture: rl.Texture,
 	snake_body_textures: [4]rl.Texture,
 	snake_body_grow_textures: [4]rl.Texture,
@@ -106,10 +108,19 @@ Game_Memory :: struct {
 	background_texture: rl.Texture,
 	font: rl.Font,
 
+	music: rl.Music,
+	sound_die: rl.Sound,
+	sound_win: rl.Sound,
+
 	main_menu_buttons: [LEVEL_COUNT]Button,
 	levels: [LEVEL_COUNT]Level,
-	highScores: [LEVEL_COUNT]i32,
+	high_scores: [LEVEL_COUNT]i32,
 	level_state: Level_State,
+	level_buttons: [3]Button,
+	reset_score_button: Button,
+	mute_button: Button,
+
+	is_muted: bool,
 }
 
 g_mem: ^Game_Memory
@@ -122,7 +133,7 @@ game_camera :: proc() -> rl.Camera2D {
 }
 
 save_level :: proc(level: ^Level, slot: i32) {
-	levelName := fmt.tprintf("./assets/level_%d.txt", slot)
+	levelName := fmt.tprintf("./assets/levels/level_%d.txt", slot)
 
 	b := strings.builder_make()
 
@@ -161,7 +172,7 @@ save_level :: proc(level: ^Level, slot: i32) {
 
 load_levels :: proc() {
 	for i in 0..<LEVEL_COUNT {
-		levelName := fmt.tprintf("./assets/level_%d.txt", i)
+		levelName := fmt.tprintf("./assets/levels/level_%d.txt", i)
 		bytes, _ := _read_entire_file(levelName)
 		defer delete(bytes)
 		lines := strings.split(string(bytes), "\r\n")
@@ -222,14 +233,14 @@ load_score :: proc() {
 	defer delete(lines)
 
 	for i in 0..<LEVEL_COUNT {
-		g_mem.highScores[i] = i32(strconv.atoi(lines[i]))
+		g_mem.high_scores[i] = i32(strconv.atoi(lines[i]))
 	}
 }
 
 save_scores :: proc() {
 	b := strings.builder_make()
 
-	for score in g_mem.highScores {
+	for score in g_mem.high_scores {
 		strings.write_int(&b, int(score))
 		strings.write_string(&b, "\r\n")
 	}
@@ -250,6 +261,10 @@ game_update :: proc() {
 		level_update()
 		level_draw()
 	}
+
+	if !g_mem.is_muted {
+		rl.UpdateMusicStream(g_mem.music)
+	}
 }
 
 @(export)
@@ -259,6 +274,8 @@ game_init_window :: proc() {
 	rl.SetWindowPosition(rl.GetMonitorWidth(rl.GetCurrentMonitor()) - PIXEL_WINDOW_SIZE - 100, 50)
 	rl.SetTargetFPS(180)
 	rl.SetExitKey(nil)
+
+    rl.InitAudioDevice()
 }
 
 @(export)
@@ -268,47 +285,82 @@ game_init :: proc() {
 	g_mem^ = Game_Memory {
 		run = true,
 
-		snake_head_texture = rl.LoadTexture("assets/headmiddle.png"),
-		snake_tail_texture = rl.LoadTexture("assets/butt1.png"),
+		snake_head_textures = {
+			rl.LoadTexture("./assets/images/h1.png"), 
+			rl.LoadTexture("./assets/images/h2.png"),
+			rl.LoadTexture("./assets/images/h3.png"),
+			rl.LoadTexture("./assets/images/h4.png"),
+			rl.LoadTexture("./assets/images/h5.png"),
+			rl.LoadTexture("./assets/images/h6.png"),
+			rl.LoadTexture("./assets/images/h7.png"),
+			rl.LoadTexture("./assets/images/h8.png"),
+			rl.LoadTexture("./assets/images/h9.png"),
+		},
+		snake_head_left_textures = {
+			rl.LoadTexture("./assets/images/hl1.png"),
+		},
+		snake_head_right_textures = {
+			rl.LoadTexture("./assets/images/hr1.png"),
+		},
+		snake_tail_texture = rl.LoadTexture("./assets/images/butt1.png"),
 		snake_body_textures = {
-			rl.LoadTexture("assets/frame1.png"), 
-			rl.LoadTexture("assets/frame2.png"),
-			rl.LoadTexture("assets/frame3.png"),
-			rl.LoadTexture("assets/frame4.png"),
+			rl.LoadTexture("./assets/images/frame1.png"), 
+			rl.LoadTexture("./assets/images/frame2.png"),
+			rl.LoadTexture("./assets/images/frame3.png"),
+			rl.LoadTexture("./assets/images/frame4.png"),
 		},
 		snake_body_grow_textures = {
-			rl.LoadTexture("assets/frame1 half.png"), 
-			rl.LoadTexture("assets/frame 2 half.png"),
-			rl.LoadTexture("assets/frame3 half.png"),
-			rl.LoadTexture("assets/frame4.png"),
+			rl.LoadTexture("./assets/images/frame1 half.png"), 
+			rl.LoadTexture("./assets/images/frame 2 half.png"),
+			rl.LoadTexture("./assets/images/frame3 half.png"),
+			rl.LoadTexture("./assets/images/frame4.png"),
 		},
 		snake_bend_left_textures = {
-			rl.LoadTexture("assets/side1.png"), 
-			rl.LoadTexture("assets/side2.png"),
-			rl.LoadTexture("assets/side3.png"),
-			rl.LoadTexture("assets/side4.png"),
+			rl.LoadTexture("./assets/images/side1.png"), 
+			rl.LoadTexture("./assets/images/side2.png"),
+			rl.LoadTexture("./assets/images/side3.png"),
+			rl.LoadTexture("./assets/images/side4.png"),
 		},
 		snake_bend_right_textures = {
-			rl.LoadTexture("assets/rside1.png"), 
-			rl.LoadTexture("assets/rside2.png"),
-			rl.LoadTexture("assets/rside3.png"),
-			rl.LoadTexture("assets/rside4.png"),
+			rl.LoadTexture("./assets/images/rside1.png"), 
+			rl.LoadTexture("./assets/images/rside2.png"),
+			rl.LoadTexture("./assets/images/rside3.png"),
+			rl.LoadTexture("./assets/images/rside4.png"),
 		},
-		background_texture = rl.LoadTexture("assets/background.png"),
-		font = rl.LoadFontEx("assets/SpaceMono-Regular.ttf", 200, nil, 0),
+		background_texture = rl.LoadTexture("./assets/images/background.png"),
+		font = rl.LoadFontEx("./assets/SpaceMono-Regular.ttf", 200, nil, 0),
 		on_main_menu = true,
+
+		music = rl.LoadMusicStream("./assets/sounds/music.mp3"),
+		sound_die = rl.LoadSound("./assets/sounds/die.mp3"),
+		sound_win = rl.LoadSound("./assets/sounds/win.mp3"),
 	}
+
+	rl.PlayMusicStream(g_mem.music)
+	rl.SetMusicVolume(g_mem.music, 0.4)
 
 	g_mem.level_state.snake_body = make([dynamic]Vec2i)
 
 	padding := 20
 	for &button, i in g_mem.main_menu_buttons {
 		pos := index_to_position(i, 3)
-		button.x = pos.x * PIXEL_WINDOW_SIZE / 3 + padding
-		button.y = (pos.y + 1) * PIXEL_WINDOW_SIZE / 4 + padding
-		button.width = PIXEL_WINDOW_SIZE / 3 - padding * 2
-		button.height = PIXEL_WINDOW_SIZE / 4 - padding * 2
+		button.rect = {
+			x = f32(pos.x * PIXEL_WINDOW_SIZE / 3 + padding),
+			y = f32((pos.y + 1) * PIXEL_WINDOW_SIZE / 4 + padding),
+			width = f32(PIXEL_WINDOW_SIZE / 3 - padding * 2),
+			height = f32(PIXEL_WINDOW_SIZE / 4 - padding * 2),
+		}
 	}
+
+	g_mem.level_buttons[0].rect = {150, 800, 216, 100}
+	g_mem.level_buttons[1].rect = {416, 800, 216, 100}
+	g_mem.level_buttons[2].rect = {682, 800, 216, 100}
+
+	g_mem.mute_button.rect = {f32(PIXEL_WINDOW_SIZE - padding - 50), f32(padding), 50, 50}
+	g_mem.mute_button.atlas = rl.LoadTexture("./assets/images/muteButton.png")
+	g_mem.mute_button.frame_count = 2
+	
+	g_mem.reset_score_button.rect = {f32(PIXEL_WINDOW_SIZE - padding * 2 - 50 * 2), f32(padding), 50, 50}
 
 	load_levels()
 	load_score()
@@ -335,12 +387,15 @@ game_shutdown :: proc() {
 	}
 
 	delete(g_mem.level_state.snake_body)
+
+	rl.UnloadMusicStream(g_mem.music)
 	
 	free(g_mem)
 }
 
 @(export)
 game_shutdown_window :: proc() {
+    rl.CloseAudioDevice()
 	rl.CloseWindow()
 }
 
