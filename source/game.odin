@@ -309,7 +309,7 @@ game_init :: proc() {
 		snake_body_left_texture = rl.LoadTexture("./assets/images/bodyLeft.png"),
 		snake_body_right_texture = rl.LoadTexture("./assets/images/bodyRight.png"),
 		background_texture = rl.LoadTexture("./assets/images/background.png"),
-		hud_texture = rl.LoadTexture("./assets/images/HUD.png"),
+		hud_texture = rl.LoadTexture("./assets/images/hud.png"),
 		popup_texture = rl.LoadTexture("./assets/images/popup.png"),
 		font = rl.LoadFontEx("./assets/Quicksand-Bold.ttf", 200, nil, 0),
 		on_main_menu = true,
