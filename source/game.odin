@@ -38,6 +38,10 @@ import "core:math"
 PIXEL_WINDOW_SIZE :: 1050
 TICK_RATE :: 0.50
 LEVEL_COUNT :: 9
+SNAKE_FRAME_COUNT :: 8
+
+COLOR_TURQIOSE :: rl.Color{90, 229, 225, 255}
+COLOR_SHADOW :: rl.Color{41, 43, 58, 255}
 
 DIR_NONE  :: Vec2i{0, 0}
 DIR_UP    :: Vec2i{0, -1}
@@ -106,27 +110,29 @@ Game_Memory :: struct {
 	run: bool,
 	on_main_menu: bool,
 	
-	snake_head_textures: [9]rl.Texture,
-	snake_head_left_textures: [1]rl.Texture,
-	snake_head_right_textures: [1]rl.Texture,
-	snake_tail_texture: rl.Texture,
-	snake_body_textures: [4]rl.Texture,
-	snake_body_grow_textures: [4]rl.Texture,
-	snake_bend_left_textures: [4]rl.Texture,
-	snake_bend_right_textures: [4]rl.Texture,
+	snake_head_texture: rl.Texture,
+	snake_head_left_texture: rl.Texture,
+	snake_head_right_texture: rl.Texture,
+	snake_body_texture: rl.Texture,
+	snake_body_left_texture: rl.Texture,
+	snake_body_right_texture: rl.Texture,
 	snake_face_textures: [Face]rl.Texture,
 	level_textures: [LEVEL_COUNT]rl.Texture,
 	background_texture: rl.Texture,
+	hud_texture: rl.Texture,
+	popup_texture: rl.Texture,
+
 	font: rl.Font,
 
 	music: rl.Music,
 	sound_die: rl.Sound,
 	sound_win: rl.Sound,
 
-	main_menu_buttons: [LEVEL_COUNT]Button,
 	levels: [LEVEL_COUNT]Level,
 	high_scores: [LEVEL_COUNT]i32,
 	level_state: Level_State,
+
+	main_menu_buttons: [LEVEL_COUNT]Button,
 	level_buttons: [3]Button,
 	reset_score_button: Button,
 	mute_button: Button,
@@ -281,7 +287,7 @@ game_update :: proc() {
 @(export)
 game_init_window :: proc() {
 	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT, .MSAA_4X_HINT, .WINDOW_HIGHDPI })
-	rl.InitWindow(PIXEL_WINDOW_SIZE, PIXEL_WINDOW_SIZE, "Snek!")
+	rl.InitWindow(PIXEL_WINDOW_SIZE, PIXEL_WINDOW_SIZE, "Snake Trails")
 	rl.SetWindowPosition(rl.GetMonitorWidth(rl.GetCurrentMonitor()) - PIXEL_WINDOW_SIZE - 100, 50)
 	rl.SetTargetFPS(180)
 	rl.SetExitKey(nil)
@@ -296,50 +302,16 @@ game_init :: proc() {
 	g_mem^ = Game_Memory {
 		run = true,
 
-		snake_head_textures = {
-			rl.LoadTexture("./assets/images/h1.png"), 
-			rl.LoadTexture("./assets/images/h2.png"),
-			rl.LoadTexture("./assets/images/h3.png"),
-			rl.LoadTexture("./assets/images/h4.png"),
-			rl.LoadTexture("./assets/images/h5.png"),
-			rl.LoadTexture("./assets/images/h6.png"),
-			rl.LoadTexture("./assets/images/h7.png"),
-			rl.LoadTexture("./assets/images/h8.png"),
-			rl.LoadTexture("./assets/images/h9.png"),
-		},
-		snake_head_left_textures = {
-			rl.LoadTexture("./assets/images/hl1.png"),
-		},
-		snake_head_right_textures = {
-			rl.LoadTexture("./assets/images/hr1.png"),
-		},
-		snake_tail_texture = rl.LoadTexture("./assets/images/butt1.png"),
-		snake_body_textures = {
-			rl.LoadTexture("./assets/images/frame1.png"), 
-			rl.LoadTexture("./assets/images/frame2.png"),
-			rl.LoadTexture("./assets/images/frame3.png"),
-			rl.LoadTexture("./assets/images/frame4.png"),
-		},
-		snake_body_grow_textures = {
-			rl.LoadTexture("./assets/images/frame1 half.png"), 
-			rl.LoadTexture("./assets/images/frame 2 half.png"),
-			rl.LoadTexture("./assets/images/frame3 half.png"),
-			rl.LoadTexture("./assets/images/frame4.png"),
-		},
-		snake_bend_left_textures = {
-			rl.LoadTexture("./assets/images/side1.png"), 
-			rl.LoadTexture("./assets/images/side2.png"),
-			rl.LoadTexture("./assets/images/side3.png"),
-			rl.LoadTexture("./assets/images/side4.png"),
-		},
-		snake_bend_right_textures = {
-			rl.LoadTexture("./assets/images/rside1.png"), 
-			rl.LoadTexture("./assets/images/rside2.png"),
-			rl.LoadTexture("./assets/images/rside3.png"),
-			rl.LoadTexture("./assets/images/rside4.png"),
-		},
+		snake_head_texture = rl.LoadTexture("./assets/images/head.png"),
+		snake_head_left_texture = rl.LoadTexture("./assets/images/headLeft.png"),
+		snake_head_right_texture = rl.LoadTexture("./assets/images/headRight.png"),
+		snake_body_texture = rl.LoadTexture("./assets/images/body.png"), 
+		snake_body_left_texture = rl.LoadTexture("./assets/images/bodyLeft.png"),
+		snake_body_right_texture = rl.LoadTexture("./assets/images/bodyRight.png"),
 		background_texture = rl.LoadTexture("./assets/images/background.png"),
-		font = rl.LoadFontEx("./assets/SpaceMono-Regular.ttf", 200, nil, 0),
+		hud_texture = rl.LoadTexture("./assets/images/HUD.png"),
+		popup_texture = rl.LoadTexture("./assets/images/popup.png"),
+		font = rl.LoadFontEx("./assets/Quicksand-Bold.ttf", 200, nil, 0),
 		on_main_menu = true,
 
 		music = rl.LoadMusicStream("./assets/sounds/music.mp3"),
@@ -363,26 +335,47 @@ game_init :: proc() {
 
 	g_mem.level_state.snake_body = make([dynamic]Vec2i)
 
-	padding := 20
+	margin : f32 = 40
+	padding : f32 = 10
+	container := rl.Rectangle {
+		margin,
+		PIXEL_WINDOW_SIZE - 213 * 3 - margin * 2 - padding * 2,
+		PIXEL_WINDOW_SIZE - margin * 2,
+		600 + padding * 2 + margin * 2,
+	}
 	for &button, i in g_mem.main_menu_buttons {
 		pos := index_to_position(i, 3)
 		button.rect = {
-			x = f32(pos.x * PIXEL_WINDOW_SIZE / 3 + padding),
-			y = f32((pos.y + 1) * PIXEL_WINDOW_SIZE / 4 + padding),
-			width = f32(PIXEL_WINDOW_SIZE / 3 - padding * 2),
-			height = f32(PIXEL_WINDOW_SIZE / 4 - padding * 2),
+			x = f32(container.x + f32(pos.x) * container.width / 3) + padding,
+			y = f32(container.y + f32(pos.y) * container.height / 3) + padding,
+			width = f32(container.width / 3) - padding * 2,
+			height = f32(container.height / 3) - padding * 2,
 		}
+
+		// button.atlas = rl.LoadTexture("./assets/images/button.png")
+		button.atlas = rl.LoadTexture(fmt.ctprintf("./assets/images/levelFrame%v.png", i32(i / 3) + 1))
+		button.frame_count = 1
 	}
 
 	g_mem.level_buttons[0].rect = {150, 800, 216, 100}
-	g_mem.level_buttons[1].rect = {416, 800, 216, 100}
-	g_mem.level_buttons[2].rect = {682, 800, 216, 100}
+	g_mem.level_buttons[0].atlas = rl.LoadTexture("./assets/images/button.png")
+	g_mem.level_buttons[0].frame_count = 1
 
-	g_mem.mute_button.rect = {f32(PIXEL_WINDOW_SIZE - padding - 50), f32(padding), 50, 50}
+	g_mem.level_buttons[1].rect = {416, 800, 216, 100}
+	g_mem.level_buttons[1].atlas = rl.LoadTexture("./assets/images/button.png")
+	g_mem.level_buttons[1].frame_count = 1
+
+	g_mem.level_buttons[2].rect = {682, 800, 216, 100}
+	g_mem.level_buttons[2].atlas = rl.LoadTexture("./assets/images/button.png")
+	g_mem.level_buttons[2].frame_count = 1
+
+	g_mem.mute_button.rect = {f32(PIXEL_WINDOW_SIZE - 100), 50, 50, 50}
 	g_mem.mute_button.atlas = rl.LoadTexture("./assets/images/muteButton.png")
 	g_mem.mute_button.frame_count = 2
 	
-	g_mem.reset_score_button.rect = {f32(PIXEL_WINDOW_SIZE - padding * 2 - 50 * 2), f32(padding), 50, 50}
+	g_mem.reset_score_button.rect = {PIXEL_WINDOW_SIZE / 2 - 210 / 2, 210, 216, 64}
+	g_mem.reset_score_button.atlas = rl.LoadTexture("./assets/images/resetScoreButton.png")
+	g_mem.reset_score_button.frame_count = 1
 
 	load_levels()
 	load_score()

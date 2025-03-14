@@ -27,7 +27,6 @@ Level_State :: struct {
 	is_editing: bool,
     speed_multiplier: f32,
     frame_index: int,
-    head_frame_index: int,
 
 	cell_index: i32,
     current_face: Face,
@@ -153,7 +152,7 @@ level_update :: proc() {
     levelData := &g_mem.levels[state.level]
     currentCell := levelData.grid[position_to_index(state.current_pos, levelData.width)]
     if currentCell == .Sand {
-        state.speed_multiplier -= 0.75
+        state.speed_multiplier = state.speed_multiplier == 1 ? 0.5 : 1.25
         state.current_face = .Sandy
     } else if currentCell == .Ice {
         state.current_face = .Freezing
@@ -189,8 +188,8 @@ level_update :: proc() {
             you_fucking_won()
         }
 
-        for pos in state.snake_body {
-            if state.target_pos == pos {
+        for i in 0..<len(state.snake_body) - 1 {
+            if state.current_pos == state.snake_body[i] {
                 you_fucking_died()
                 return
             }
@@ -201,8 +200,7 @@ level_update :: proc() {
     }
 
     percentage := math.min((1 - math.max(state.tick_timer, 0) / TICK_RATE), 0.98)
-    state.frame_index = int(4 * percentage)
-    state.head_frame_index = int(8 * percentage)
+    state.frame_index = int(SNAKE_FRAME_COUNT * percentage)
 }
 
 level_draw :: proc() {
@@ -220,45 +218,45 @@ level_draw :: proc() {
 	cellWidth := f32(PIXEL_WINDOW_SIZE / levelData.width)
 	cellHeight := f32(PIXEL_WINDOW_SIZE / levelData.height)
 
-	// for i in 0..<len(levelData.grid) {
-	// 	pos := index_to_position(i, levelData.width)
-	// 	rect := rl.Rectangle{
-	// 		x = f32(pos.x) * cellWidth,
-	// 		y = f32(pos.y) * cellHeight,
-	// 		width = cellWidth,
-	// 		height = cellHeight,
-	// 	}
+	for i in 0..<len(levelData.grid) {
+		pos := index_to_position(i, levelData.width)
+		rect := rl.Rectangle{
+			x = f32(pos.x) * cellWidth,
+			y = f32(pos.y) * cellHeight,
+			width = cellWidth,
+			height = cellHeight,
+		}
 
-	// 	#partial switch levelData.grid[i] {
-	// 	case .Wall: 
-    //         color : rl.Color
-    //         if pos.y < 3 || pos.y < 5 && pos.x < 5 {
-    //             color = rl.GRAY
-    //         } else {
-    //             color = rl.MAROON
-    //         }
-	// 		// rl.DrawRectangleRec(rect, color)
-	// 		rl.DrawRectangleLinesEx(rect, 2, color)
+		// #partial switch levelData.grid[i] {
+		// case .Wall: 
+        //     color : rl.Color
+        //     if pos.y < 3 || pos.y < 5 && pos.x < 5 {
+        //         color = rl.GRAY
+        //     } else {
+        //         color = rl.MAROON
+        //     }
+		// 	// rl.DrawRectangleRec(rect, color)
+		// 	rl.DrawRectangleLinesEx(rect, 2, color)
 		
-	// 	case .Goal: 
-	// 		// rl.DrawRectangleRec(rect, rl.GREEN)
-	// 		rl.DrawRectangleLinesEx(rect, 2, rl.GREEN)
-    //     case .Ice: 
-    //         // rl.DrawRectangleRec(rect, rl.SKYBLUE)
-	// 		rl.DrawRectangleLinesEx(rect, 2, rl.SKYBLUE)
-    //     case .Sand: 
-    //         // rl.DrawRectangleRec(rect, rl.YELLOW)
-	// 		rl.DrawRectangleLinesEx(rect, 2, rl.YELLOW)
-	// 	}
+		// case .Goal: 
+		// 	// rl.DrawRectangleRec(rect, rl.GREEN)
+		// 	rl.DrawRectangleLinesEx(rect, 2, rl.GREEN)
+        // case .Ice: 
+        //     // rl.DrawRectangleRec(rect, rl.SKYBLUE)
+		// 	rl.DrawRectangleLinesEx(rect, 2, rl.SKYBLUE)
+        // case .Sand: 
+        //     // rl.DrawRectangleRec(rect, rl.YELLOW)
+		// 	rl.DrawRectangleLinesEx(rect, 2, rl.YELLOW)
+		// }
         
-    //     if pos == state.current_pos {
-    //         rl.DrawRectangleLinesEx(rect, 3, rl.GRAY)
-    //     }
+        // if pos == state.current_pos {
+        //     rl.DrawRectangleLinesEx(rect, 3, rl.GRAY)
+        // }
 
-    //     if pos == state.target_pos {
-    //         rl.DrawRectangleLinesEx(rect, 3, rl.LIGHTGRAY)
-    //     }
-	// }
+        if pos == state.target_pos {
+            rl.DrawRectangleRoundedLinesEx(rect, 0.25, 0, 3, rl.Color{ 200, 200, 200, 100 })
+        }
+	}
 
 	for i in 1..<len(state.snake_body)- 1 {
         dirFromPrev := state.snake_body[i] - state.snake_body[i - 1]
@@ -266,75 +264,81 @@ level_draw :: proc() {
         crossProduct := linalg.vector_cross(dirFromPrev, dirToNext)
         texture : rl.Texture
         if crossProduct == 0 {
-            texture = g_mem.snake_body_textures[state.frame_index]
+            texture = g_mem.snake_body_texture
         } else if crossProduct < 0 {
-            texture = g_mem.snake_bend_left_textures[state.frame_index]
+            texture = g_mem.snake_body_left_texture
         } else if crossProduct > 0 {
-            texture = g_mem.snake_bend_right_textures[state.frame_index]
+            texture = g_mem.snake_body_right_texture
         }
 
         pos := state.snake_body[i]
-		dest := rl.Rectangle {
-            x = f32(pos.x) * cellWidth + cellWidth / 2,
-			y = f32(pos.y) * cellHeight + cellHeight / 2,
-			width = cellWidth,
-			height = cellHeight,
-		}
+		// dest := rl.Rectangle {
+        //     x = f32(pos.x) * cellWidth + cellWidth / 2,
+		// 	y = f32(pos.y) * cellHeight + cellHeight / 2,
+		// 	width = cellWidth,
+		// 	height = cellHeight,
+		// }
         
         rot := math.atan2(f32(dirFromPrev.y), f32(dirFromPrev.x)) * math.DEG_PER_RAD
-        draw_texture(texture, dest, {cellWidth, cellHeight}, rot + 90)
+        // draw_texture(texture, dest, {cellWidth, cellHeight}, rot + 90)
+
+        
+        draw_snake_part(texture, state.frame_index, {f32(pos.x) * cellWidth, f32(pos.y) * cellHeight}, rot)
 	}
 
-    dest := rl.Rectangle {
-        x = f32(state.current_pos.x) * cellWidth + cellWidth / 2,
-        y = f32(state.current_pos.y) * cellHeight + cellHeight / 2,
-        width = cellWidth,
-        height = cellHeight,
-    }
+    // dest := rl.Rectangle {
+    //     x = f32(state.current_pos.x) * cellWidth + cellWidth / 2,
+    //     y = f32(state.current_pos.y) * cellHeight + cellHeight / 2,
+    //     width = cellWidth,
+    //     height = cellHeight,
+    // }
 
     dir := state.current_dir
     rot := math.atan2(f32(dir.y), f32(dir.x)) * math.DEG_PER_RAD
     
     texture : rl.Texture
     if state.direction == .Straight {
-        texture = g_mem.snake_head_textures[state.head_frame_index]
+        texture = g_mem.snake_head_texture
     } else if state.direction == .Left {
-        texture = g_mem.snake_head_left_textures[0]
+        texture = g_mem.snake_head_left_texture
         rot += 90
     }  else if state.direction == .Right {
-        texture = g_mem.snake_head_right_textures[0]
+        texture = g_mem.snake_head_right_texture
         rot -= 90
     }
     
-    source := rl.Rectangle {
-		0, 0,
-		f32(texture.width),
-		f32(texture.height),
-	}
+    // source := rl.Rectangle {
+	// 	0, 0,
+	// 	f32(texture.width),
+	// 	f32(texture.height),
+	// }
 
-    dest = rl.Rectangle {
-        x = f32(state.current_pos.x) * cellWidth + f32(texture.width) / 4,
-        y = f32(state.current_pos.y) * cellHeight + f32(texture.height) / 4,
-        width = f32(texture.width),
-        height = f32(texture.height),
-    }
+    // dest = rl.Rectangle {
+    //     x = f32(state.current_pos.x) * cellWidth + f32(texture.width) / 4,
+    //     y = f32(state.current_pos.y) * cellHeight + f32(texture.height) / 4,
+    //     width = f32(texture.width),
+    //     height = f32(texture.height),
+    // }
 
-	rl.DrawTexturePro(texture, source, dest, {f32(texture.width), f32(texture.height)} / 2, rot + 90, rl.WHITE)
+	// rl.DrawTexturePro(texture, source, dest, {f32(texture.width), f32(texture.height)} / 2, rot + 90, rl.WHITE)
 
-    rl.DrawRectangle(25, 25, 200, 200, rl.WHITE)
+    draw_snake_part(texture, state.frame_index, {f32(state.current_pos.x) * cellWidth, f32(state.current_pos.y) * cellHeight}, rot)
+
+    rl.DrawTexture(g_mem.hud_texture, 0, 0, rl.WHITE)
     rl.DrawTexture(g_mem.snake_face_textures[state.current_face], 25, 25, rl.WHITE)
 
-    // rl.DrawLine(0, 75, 1050, 75, rl.BLACK)
-
-    center := f32(PIXEL_WINDOW_SIZE / 2)
-    draw_centered_text("Level", center - 200, 50, 50)
+    center := f32(PIXEL_WINDOW_SIZE / 2) + 50
+    draw_centered_text("Level", center - 200 + 3, 50 + 3, 50, COLOR_SHADOW)
+    draw_centered_text("Level", center - 200, 50, 50, COLOR_TURQIOSE)
     draw_centered_text(fmt.ctprintf("%v", state.level + 1), center - 200, 95, 50)
 
-    draw_centered_text("Length", center, 50, 50)
+    draw_centered_text("Length", center + 3, 50 + 3, 50, COLOR_SHADOW)
+    draw_centered_text("Length", center, 50, 50, COLOR_TURQIOSE)
     draw_centered_text(fmt.ctprintf("%v", state.length - 2), center, 95, 50)
 
-    draw_centered_text("Time", center + 200, 50, 50)
-    draw_centered_text(fmt.ctprintf("%v", i32(state.time)), center + 200, 95, 50)
+    draw_centered_text("Time", center + 200 + 3, 50 + 3, 50, COLOR_SHADOW)
+    draw_centered_text("Time", center + 200, 50, 50, COLOR_TURQIOSE)
+    draw_centered_text(fmt.ctprintf("%.2f", state.time), center + 200, 95, 50)
 
 
     if state.is_editing {
@@ -342,9 +346,13 @@ level_draw :: proc() {
     }
 
     if state.status == .GameOver || state.status == .Win {
-        padding : f32 = 100
-        rec := rl.Rectangle{padding, padding * 2, PIXEL_WINDOW_SIZE - padding * 2, PIXEL_WINDOW_SIZE - padding * 3}
-	    rl.DrawRectangleRec(rec, rl.BLACK)
+        rec := rl.Rectangle{
+            100, 
+            f32(PIXEL_WINDOW_SIZE - g_mem.popup_texture.height - 100), 
+            f32(g_mem.popup_texture.width), 
+            f32(g_mem.popup_texture.height),
+        }
+        rl.DrawTexture(g_mem.popup_texture, i32(rec.x), i32(rec.y), rl.WHITE)
 
         strings : [3]cstring = {
             "Main Menu",
@@ -353,19 +361,23 @@ level_draw :: proc() {
         }
 
         for &button, i in g_mem.level_buttons {
-            rl.DrawRectangleRec(button.rect, rl.DARKGREEN)
+            draw_button(button)
             draw_centered_text(strings[i], f32(button.rect.x + button.rect.width / 2), f32(button.rect.y + button.rect.height / 2), 40)
         }
 
         if state.status == .GameOver {
-            draw_centered_text("You hecking died!", rec.x + rec.width / 2, rec.y + 100, 100)
+            draw_centered_text("You hecking died!", rec.x + rec.width / 2 + 5, rec.y + 100 + 5, 100, COLOR_SHADOW)
+            draw_centered_text("You hecking died!", rec.x + rec.width / 2, rec.y + 100, 100, COLOR_TURQIOSE)
         } else {
-            draw_centered_text("You hecking won!", rec.x + rec.width / 2, rec.y + 100, 100)
+            draw_centered_text("You hecking won!", rec.x + rec.width / 2 + 5, rec.y + 100 + 5, 100, COLOR_SHADOW)
+            draw_centered_text("You hecking won!", rec.x + rec.width / 2, rec.y + 100, 100, COLOR_TURQIOSE)
         }
-        draw_centered_text("High Score", rec.x + rec.width / 2, rec.y + 200, 50)
+        draw_centered_text("High Score", rec.x + rec.width / 2 + 3, rec.y + 200 + 3, 50, COLOR_SHADOW)
+        draw_centered_text("High Score", rec.x + rec.width / 2, rec.y + 200, 50, COLOR_TURQIOSE)
         draw_centered_text(fmt.ctprintf("%v", g_mem.high_scores[state.level]), rec.x + rec.width / 2, rec.y + 250, 50)
         
-        draw_centered_text("Score", rec.x + rec.width / 2, rec.y + 350, 50)
+        draw_centered_text("Score", rec.x + rec.width / 2 + 3, rec.y + 350 + 3, 50, COLOR_SHADOW)
+        draw_centered_text("Score", rec.x + rec.width / 2, rec.y + 350, 50, COLOR_TURQIOSE)
         draw_centered_text(fmt.ctprintf("%v", state.score), rec.x + rec.width / 2, rec.y + 400, 50)
     }
 
@@ -385,8 +397,7 @@ you_fucking_won :: proc() {
         rl.PlaySound(g_mem.sound_win)
     }
 
-    timeMultiplier := math.max(1, 5 * (5 / state.time))
-    state.score = i32(f32(state.length * 10) * timeMultiplier)
+    state.score = calculate_score(state) * 2
 
     if state.score > g_mem.high_scores[state.level] {
         g_mem.high_scores[state.level] = state.score
@@ -403,8 +414,7 @@ you_fucking_died :: proc() {
         rl.PlaySound(g_mem.sound_die)
     }
 
-    timeMultiplier := math.max(1, 5 * (state.time / 10))
-    state.score = i32(f32(state.length * 10) * timeMultiplier)
+    state.score = calculate_score(state)
 
     if state.score > g_mem.high_scores[state.level] {
         g_mem.high_scores[state.level] = state.score
@@ -421,7 +431,6 @@ restart_level :: proc() {
     state.length = 2
     state.cell_index = 0
     state.frame_index = 0
-    state.head_frame_index = 0
     state.speed_multiplier = 1
     state.direction = .Straight
 
@@ -435,4 +444,10 @@ restart_level :: proc() {
     state.target_pos = state.current_pos + state.current_dir
     state.target_dir = levelData.start_dir
     state.current_face = .Normal
+}
+
+calculate_score :: proc(state: ^Level_State) -> i32 {
+    timePerLength := state.time / f32(state.length - 2)
+    speedMultiplier := TICK_RATE / timePerLength
+    return i32(f32(state.length - 2) * speedMultiplier)
 }

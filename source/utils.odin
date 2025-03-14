@@ -14,7 +14,7 @@ write_entire_file :: proc(name: string, data: []byte, truncate := true) -> (succ
 	return _write_entire_file(name, data, truncate)
 }
 
-draw_centered_text :: proc(text: cstring, x, y: f32, fontSize: f32,) {
+draw_centered_text :: proc(text: cstring, x, y: f32, fontSize: f32, color: rl.Color = rl.WHITE) {
 	textSize := rl.MeasureTextEx(g_mem.font, text, fontSize, 0)
 	rl.DrawTextEx(
 		g_mem.font, 
@@ -22,15 +22,12 @@ draw_centered_text :: proc(text: cstring, x, y: f32, fontSize: f32,) {
 		{x - textSize.x / 2, y - textSize.y / 2}, 
 		fontSize, 
 		0, 
-		rl.WHITE,
+		color,
 	)
 }
 
 button_clicked :: proc(button: Button, pos: [2]f32) -> bool {
 	return rl.CheckCollisionPointRec(pos, button.rect)
-	// rect := button.rect
-	// rl.DrawRectangle()
-	// return int(pos.x) >= button.x && int(pos.x) < button.x + button.width && int(pos.y) >= button.y && int(pos.y) < button.y + button.height
 }
 
 get_scaled_mouse_position :: proc() -> [2]f32 {
@@ -63,9 +60,27 @@ draw_button :: proc(button: Button) {
 	source := rl.Rectangle {
 		0,
 		f32(button.frame_index) * button.rect.height,
-		button.rect.width,
-		button.rect.height,
+		f32(button.atlas.width),
+		f32(button.atlas.height / i32(button.frame_count)),
 	}
 
 	rl.DrawTexturePro(button.atlas, source, button.rect, {0, 0} / 2, 0, rl.WHITE)
+}
+
+draw_snake_part :: proc(texture: rl.Texture, frame: int, pos: rl.Vector2, rotation: f32) {
+	source := rl.Rectangle {
+		0, 
+		f32(frame) * (f32(texture.height) / SNAKE_FRAME_COUNT),
+		f32(texture.width),
+		f32(texture.height) / SNAKE_FRAME_COUNT,
+	}
+
+    dest := rl.Rectangle {
+        x = f32(pos.x) + f32(texture.width) / 4,
+        y = f32(pos.y) + f32(texture.height / SNAKE_FRAME_COUNT) / 4,
+        width = f32(texture.width),
+        height = f32(texture.height) / SNAKE_FRAME_COUNT,
+    }
+
+	rl.DrawTexturePro(texture, source, dest, {f32(texture.width), f32(texture.height / SNAKE_FRAME_COUNT)} / 2, rotation, rl.WHITE)
 }

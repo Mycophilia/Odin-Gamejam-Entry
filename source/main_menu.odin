@@ -1,7 +1,6 @@
 package game
 
 import rl "vendor:raylib"
-import "core:strings"
 import "core:fmt"
 
 main_menu_process_input :: proc() {
@@ -41,20 +40,20 @@ main_menu_draw :: proc() {
 	rl.BeginMode2D(game_camera())
 	rl.DrawRectangle(0, 0, PIXEL_WINDOW_SIZE, PIXEL_WINDOW_SIZE, rl.DARKGRAY)
 
-	title, _ := strings.clone_to_cstring("SNEK GAME")
-	defer delete(title)
-
 	totalScore : i32 = 0
 	for score in g_mem.high_scores {
 		totalScore += score
 	}
 
-	draw_centered_text("SNEK GAME", PIXEL_WINDOW_SIZE / 2, 75, 150)
+	draw_centered_text("SNAKE TRAILS", PIXEL_WINDOW_SIZE / 2 + 5, 80, 150, COLOR_SHADOW)
+	draw_centered_text("SNAKE TRAILS", PIXEL_WINDOW_SIZE / 2, 75, 150, COLOR_TURQIOSE)
+	draw_centered_text(fmt.ctprintf("Total Score: %v", totalScore), PIXEL_WINDOW_SIZE / 2 + 4, 179, 50, COLOR_SHADOW)
 	draw_centered_text(fmt.ctprintf("Total Score: %v", totalScore), PIXEL_WINDOW_SIZE / 2, 175, 50)
 
 	for &button, i in g_mem.main_menu_buttons {
         rect := button.rect
-		rl.DrawRectangleRec(rect, rl.DARKGREEN)
+		draw_button(button)
+		// rl.DrawRectangleRec(rect, rl.DARKGREEN)
 
 		score := g_mem.high_scores[i]
 
@@ -64,8 +63,13 @@ main_menu_draw :: proc() {
 	}
 
     draw_button(g_mem.mute_button)
-
-    rl.DrawRectangleRec(g_mem.reset_score_button.rect, rl.BLUE)
+    draw_button(g_mem.reset_score_button)
+	draw_centered_text(
+		"Reset Score", 
+		g_mem.reset_score_button.rect.x + g_mem.reset_score_button.rect.width / 2,
+		g_mem.reset_score_button.rect.y + g_mem.reset_score_button.rect.height / 2,
+		30,
+	)
 
 	rl.EndMode2D()
 	rl.EndDrawing()
