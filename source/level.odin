@@ -35,32 +35,20 @@ Level_State :: struct {
 level_process_input :: proc() {
     state := &g_mem.level_state
 
-    if rl.IsMouseButtonPressed(.LEFT) {
-        mousePos := get_scaled_mouse_position()
-
-        if button_clicked(g_mem.mute_button, mousePos) {
-            g_mem.is_muted = !g_mem.is_muted
-            g_mem.mute_button.frame_index = (g_mem.mute_button.frame_index + 1) % g_mem.mute_button.frame_count
-        }
-    }
+    g_mem.mouse.pos = get_scaled_mouse_position()
+	if rl.IsMouseButtonPressed(.LEFT) {
+		g_mem.mouse.pressed_pos = g_mem.mouse.pos
+		g_mem.mouse.is_held = true
+	} else if rl.IsMouseButtonReleased(.LEFT) {
+		g_mem.mouse.released_pos = g_mem.mouse.pos
+		g_mem.mouse.is_held = false
+	}
 
     if ODIN_DEBUG && rl.IsKeyPressed(.F2) {
         state.is_editing = !state.is_editing
     }
 
     if state.status == .GameOver || state.status == .Win {
-        if rl.IsMouseButtonPressed(.LEFT) {
-            mousePos := get_scaled_mouse_position()
-
-            if button_clicked(g_mem.level_buttons[0], mousePos) {
-                g_mem.on_main_menu = true
-            } else if button_clicked(g_mem.level_buttons[1], mousePos) {
-                restart_level()
-            } else if button_clicked(g_mem.level_buttons[2], mousePos) {
-                select_level(int((state.level + 1) % LEVEL_COUNT))
-            }
-        }
-
         if rl.IsKeyPressed(.ESCAPE) {
             g_mem.on_main_menu = true
         } else if rl.IsKeyPressed(.R) {
@@ -137,10 +125,21 @@ level_process_input :: proc() {
 level_update :: proc() {
     state := &g_mem.level_state
 
-    if state.status == .Win {
-        state.current_face = .Pog
-    } else if state.status == .GameOver {
-        state.current_face = .Dead
+    if update_button(&g_mem.mute_button, g_mem.mouse) {
+        g_mem.is_muted = !g_mem.is_muted
+        g_mem.mute_button.frame_index = (g_mem.mute_button.frame_index + 1) % g_mem.mute_button.frame_count
+    }
+
+    if state.status == .Win || state.status == .GameOver {
+        state.current_face = state.status == .Win ? .Pog : .Dead
+
+        if update_button(&g_mem.level_buttons[0], g_mem.mouse) {
+            g_mem.on_main_menu = true
+        } else if update_button(&g_mem.level_buttons[1], g_mem.mouse) {
+            restart_level()
+        } else if update_button(&g_mem.level_buttons[2], g_mem.mouse) {
+            select_level(int((state.level + 1) % LEVEL_COUNT))
+        }
     } else {
         state.current_face = state.speed_multiplier > 1 ? .Zooming : .Normal
     }
@@ -210,13 +209,18 @@ level_draw :: proc() {
 	rl.BeginMode2D(game_camera())
     state := &g_mem.level_state
 
-	// rl.DrawRectangle(0, 0, PIXEL_WINDOW_SIZE, PIXEL_WINDOW_SIZE, rl.DARKGRAY)
 	rl.DrawTexture(g_mem.level_textures[state.level], 0, 0, rl.WHITE)
 
     levelData := &g_mem.levels[state.level]
 
 	cellWidth := f32(PIXEL_WINDOW_SIZE / levelData.width)
 	cellHeight := f32(PIXEL_WINDOW_SIZE / levelData.height)
+
+    draw_snake_coil(
+        g_mem.snake_coil_texture, 
+        state.frame_index, 
+        {f32(levelData.start_pos.x - levelData.start_dir.x) * cellWidth, f32(levelData.start_pos.y - levelData.start_dir.y) * cellHeight}, 
+    )
 
 	for i in 0..<len(levelData.grid) {
 		pos := index_to_position(i, levelData.width)
@@ -227,31 +231,29 @@ level_draw :: proc() {
 			height = cellHeight,
 		}
 
-		// #partial switch levelData.grid[i] {
-		// case .Wall: 
-        //     color : rl.Color
-        //     if pos.y < 3 || pos.y < 5 && pos.x < 5 {
-        //         color = rl.GRAY
-        //     } else {
-        //         color = rl.MAROON
-        //     }
-		// 	// rl.DrawRectangleRec(rect, color)
-		// 	rl.DrawRectangleLinesEx(rect, 2, color)
-		
-		// case .Goal: 
-		// 	// rl.DrawRectangleRec(rect, rl.GREEN)
-		// 	rl.DrawRectangleLinesEx(rect, 2, rl.GREEN)
-        // case .Ice: 
-        //     // rl.DrawRectangleRec(rect, rl.SKYBLUE)
-		// 	rl.DrawRectangleLinesEx(rect, 2, rl.SKYBLUE)
-        // case .Sand: 
-        //     // rl.DrawRectangleRec(rect, rl.YELLOW)
-		// 	rl.DrawRectangleLinesEx(rect, 2, rl.YELLOW)
-		// }
-        
-        // if pos == state.current_pos {
-        //     rl.DrawRectangleLinesEx(rect, 3, rl.GRAY)
-        // }
+        if state.is_editing {
+            #partial switch levelData.grid[i] {
+            case .Wall: 
+                color : rl.Color
+                if pos.y < 3 || pos.y < 5 && pos.x < 5 {
+                    color = rl.GRAY
+                } else {
+                    color = rl.MAROON
+                }
+                rl.DrawRectangleLinesEx(rect, 2, color)
+            
+            case .Goal: 
+                rl.DrawRectangleLinesEx(rect, 2, rl.GREEN)
+            case .Ice: 
+                rl.DrawRectangleLinesEx(rect, 2, rl.SKYBLUE)
+            case .Sand: 
+                rl.DrawRectangleLinesEx(rect, 2, rl.YELLOW)
+            }
+            
+            if pos == state.current_pos {
+                rl.DrawRectangleLinesEx(rect, 3, rl.GRAY)
+            }
+        }
 
         if pos == state.target_pos {
             rl.DrawRectangleRoundedLinesEx(rect, 0.25, 0, 3, rl.Color{ 200, 200, 200, 100 })
@@ -272,26 +274,10 @@ level_draw :: proc() {
         }
 
         pos := state.snake_body[i]
-		// dest := rl.Rectangle {
-        //     x = f32(pos.x) * cellWidth + cellWidth / 2,
-		// 	y = f32(pos.y) * cellHeight + cellHeight / 2,
-		// 	width = cellWidth,
-		// 	height = cellHeight,
-		// }
-        
         rot := math.atan2(f32(dirFromPrev.y), f32(dirFromPrev.x)) * math.DEG_PER_RAD
-        // draw_texture(texture, dest, {cellWidth, cellHeight}, rot + 90)
-
         
         draw_snake_part(texture, state.frame_index, {f32(pos.x) * cellWidth, f32(pos.y) * cellHeight}, rot)
 	}
-
-    // dest := rl.Rectangle {
-    //     x = f32(state.current_pos.x) * cellWidth + cellWidth / 2,
-    //     y = f32(state.current_pos.y) * cellHeight + cellHeight / 2,
-    //     width = cellWidth,
-    //     height = cellHeight,
-    // }
 
     dir := state.current_dir
     rot := math.atan2(f32(dir.y), f32(dir.x)) * math.DEG_PER_RAD
@@ -307,21 +293,6 @@ level_draw :: proc() {
         rot -= 90
     }
     
-    // source := rl.Rectangle {
-	// 	0, 0,
-	// 	f32(texture.width),
-	// 	f32(texture.height),
-	// }
-
-    // dest = rl.Rectangle {
-    //     x = f32(state.current_pos.x) * cellWidth + f32(texture.width) / 4,
-    //     y = f32(state.current_pos.y) * cellHeight + f32(texture.height) / 4,
-    //     width = f32(texture.width),
-    //     height = f32(texture.height),
-    // }
-
-	// rl.DrawTexturePro(texture, source, dest, {f32(texture.width), f32(texture.height)} / 2, rot + 90, rl.WHITE)
-
     draw_snake_part(texture, state.frame_index, {f32(state.current_pos.x) * cellWidth, f32(state.current_pos.y) * cellHeight}, rot)
 
     rl.DrawTexture(g_mem.hud_texture, 0, 0, rl.WHITE)
@@ -340,10 +311,13 @@ level_draw :: proc() {
     draw_centered_text("Time", center + 200, 50, 50, COLOR_TURQIOSE)
     draw_centered_text(fmt.ctprintf("%.2f", state.time), center + 200, 95, 50)
 
+    draw_button(g_mem.mute_button)
 
     if state.is_editing {
         rl.DrawTextEx(g_mem.font, fmt.ctprintf("Cell: %v", Cells[state.cell_index]), {800, 50}, 40, 0, rl.BLACK)
     }
+
+    draw_help_text()
 
     if state.status == .GameOver || state.status == .Win {
         rec := rl.Rectangle{
@@ -381,11 +355,33 @@ level_draw :: proc() {
         draw_centered_text(fmt.ctprintf("%v", state.score), rec.x + rec.width / 2, rec.y + 400, 50)
     }
 
-    draw_button(g_mem.mute_button)
-
-
 	rl.EndMode2D()
 	rl.EndDrawing()
+}
+
+draw_help_text :: proc() {
+    if g_mem.level_state.level == 0 {
+        draw_centered_text("Reach the apple to win!", PIXEL_WINDOW_SIZE / 2 + 100 + 3, 200 + 3, 60, COLOR_SHADOW)
+        draw_centered_text("Reach the apple to win!", PIXEL_WINDOW_SIZE / 2 + 100, 200, 60)
+
+        draw_centered_text("Move with WASD or arrow keys", PIXEL_WINDOW_SIZE / 2 + 100 + 3, 280 + 3, 60, COLOR_SHADOW)
+        draw_centered_text("Move with WASD or arrow keys", PIXEL_WINDOW_SIZE / 2 + 100, 280, 60)
+    } else if g_mem.level_state.level == 1 {
+        draw_centered_text("Hold a direction to move faster", PIXEL_WINDOW_SIZE / 2 + 100 + 3, 200 + 3, 60, COLOR_SHADOW)
+        draw_centered_text("Hold a direction to move faster", PIXEL_WINDOW_SIZE / 2 + 100, 200, 60)
+    } else if g_mem.level_state.level == 2 {
+        draw_centered_text("Score more points by moving", PIXEL_WINDOW_SIZE / 2 + 100 + 3, 200 + 3, 60, COLOR_SHADOW)
+        draw_centered_text("Score more points by moving", PIXEL_WINDOW_SIZE / 2 + 100, 200, 60)
+
+        draw_centered_text("fast and getting long", PIXEL_WINDOW_SIZE / 2 + 100 + 3, 280 + 3, 60, COLOR_SHADOW)
+        draw_centered_text("fast and getting long", PIXEL_WINDOW_SIZE / 2 + 100, 280, 60)
+    } else if g_mem.level_state.level == 3 {
+        draw_centered_text("Turning on ice is impossible", PIXEL_WINDOW_SIZE / 2 + 100 + 3, 200 + 3, 60, COLOR_SHADOW)
+        draw_centered_text("Turning on ice is impossible", PIXEL_WINDOW_SIZE / 2 + 100, 200, 60)
+    } else if g_mem.level_state.level == 6 {
+        draw_centered_text("Sand makes you slower", PIXEL_WINDOW_SIZE / 2 + 100 + 3, 200 + 3, 60, COLOR_SHADOW)
+        draw_centered_text("Sand makes you slower", PIXEL_WINDOW_SIZE / 2 + 100, 200, 60)
+    }
 }
 
 you_fucking_won :: proc() {
@@ -393,9 +389,7 @@ you_fucking_won :: proc() {
 
     state.status = .Win
 
-    if !g_mem.is_muted {
-        rl.PlaySound(g_mem.sound_win)
-    }
+    play_sound(g_mem.sound_win)
 
     state.score = calculate_score(state) * 2
 
@@ -410,9 +404,7 @@ you_fucking_died :: proc() {
 
     state.status = .GameOver
 
-    if !g_mem.is_muted {
-        rl.PlaySound(g_mem.sound_die)
-    }
+    play_sound(g_mem.sound_die)
 
     state.score = calculate_score(state)
 

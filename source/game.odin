@@ -75,11 +75,19 @@ Cells := [9]Cell {
 	.SnakeRight,
 }
 
+Button_State :: enum {
+	Normal,
+	Hovered,
+	Held,
+	Pressed,
+}
+
 Button :: struct {
 	rect: rl.Rectangle,
 	atlas: rl.Texture,
 	frame_count: int,
 	frame_index: int,
+	state: Button_State,
 }
 
 Level :: struct {
@@ -106,9 +114,20 @@ Face :: enum {
 	Dead,
 }
 
+Mouse_Data :: struct {
+	pos: rl.Vector2,
+	pressed_pos: rl.Vector2,
+	released_pos: rl.Vector2,
+	is_held: bool,
+	was_pressed: bool,
+	was_released: bool,
+}
+
 Game_Memory :: struct {
 	run: bool,
 	on_main_menu: bool,
+
+	mouse: Mouse_Data,
 	
 	snake_head_texture: rl.Texture,
 	snake_head_left_texture: rl.Texture,
@@ -116,9 +135,10 @@ Game_Memory :: struct {
 	snake_body_texture: rl.Texture,
 	snake_body_left_texture: rl.Texture,
 	snake_body_right_texture: rl.Texture,
+	snake_coil_texture: rl.Texture,
 	snake_face_textures: [Face]rl.Texture,
 	level_textures: [LEVEL_COUNT]rl.Texture,
-	background_texture: rl.Texture,
+	main_menu_texture: rl.Texture,
 	hud_texture: rl.Texture,
 	popup_texture: rl.Texture,
 
@@ -127,6 +147,8 @@ Game_Memory :: struct {
 	music: rl.Music,
 	sound_die: rl.Sound,
 	sound_win: rl.Sound,
+	sound_button_hover: rl.Sound,
+	sound_button_clicked: rl.Sound,
 
 	levels: [LEVEL_COUNT]Level,
 	high_scores: [LEVEL_COUNT]i32,
@@ -308,7 +330,8 @@ game_init :: proc() {
 		snake_body_texture = rl.LoadTexture("./assets/images/body.png"), 
 		snake_body_left_texture = rl.LoadTexture("./assets/images/bodyLeft.png"),
 		snake_body_right_texture = rl.LoadTexture("./assets/images/bodyRight.png"),
-		background_texture = rl.LoadTexture("./assets/images/background.png"),
+		snake_coil_texture = rl.LoadTexture("./assets/images/coil.png"),
+		main_menu_texture = rl.LoadTexture("./assets/images/mainMenu.png"),
 		hud_texture = rl.LoadTexture("./assets/images/hud.png"),
 		popup_texture = rl.LoadTexture("./assets/images/popup.png"),
 		font = rl.LoadFontEx("./assets/Quicksand-Bold.ttf", 200, nil, 0),
@@ -317,6 +340,8 @@ game_init :: proc() {
 		music = rl.LoadMusicStream("./assets/sounds/music.mp3"),
 		sound_die = rl.LoadSound("./assets/sounds/die.mp3"),
 		sound_win = rl.LoadSound("./assets/sounds/win.mp3"),
+		sound_button_hover = rl.LoadSound("./assets/sounds/buttonHover.mp3"),
+		sound_button_clicked = rl.LoadSound("./assets/sounds/buttonClicked.mp3"),
 	}
 
 	g_mem.snake_face_textures[.Normal] = rl.LoadTexture("./assets/images/faceNormal.png")
@@ -352,8 +377,7 @@ game_init :: proc() {
 			height = f32(container.height / 3) - padding * 2,
 		}
 
-		// button.atlas = rl.LoadTexture("./assets/images/button.png")
-		button.atlas = rl.LoadTexture(fmt.ctprintf("./assets/images/levelFrame%v.png", i32(i / 3) + 1))
+		button.atlas = rl.LoadTexture(fmt.ctprintf("./assets/images/levelButton%v.png", i + 1))
 		button.frame_count = 1
 	}
 
